@@ -31,7 +31,7 @@ model reservation {
   @@map("reservations")
 }
 
-model rdmin {
+model admin {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   password  String
