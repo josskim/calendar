@@ -1,0 +1,159 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+[type="button"],
+[type="submit"],
+[type="reset"],
+a[href],
+[role="button"],
+select,
+label[for] {
+  cursor: pointer;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* Admin calendar */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+}
+.calendar-cell {
+  min-height: 180px;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+.calendar-cell:not(.opacity-40):hover {
+  background-color: #fdf4f5;
+  box-shadow: inset 0 0 0 1px #db5461;
+  z-index: 10;
+}
+.dark .calendar-cell:not(.opacity-40):hover {
+  background-color: #2d1a1d;
+  box-shadow: inset 0 0 0 1px #db5461;
+}
+.res-btn-primary,
+.res-btn-secondary {
+  cursor: pointer;
+}
+.res-btn-primary {
+  width: 100%;
+  text-align: left;
+  padding: 4px 8px;
+  background-color: #db5461;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+.res-btn-primary:hover {
+  background-color: #c44350;
+  transform: translateX(2px);
+}
+.res-btn-secondary {
+  width: 100%;
+  text-align: left;
+  padding: 4px 8px;
+  background-color: #f4f4f5;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.dark .res-btn-secondary {
+  background-color: #27272a;
+  color: #d4d4d8;
+}
+.res-btn-secondary:hover {
+  background-color: #fdebed;
+  color: #db5461;
+  transform: translateX(2px);
+}
+.dark .res-btn-secondary:hover {
+  background-color: rgba(219, 84, 97, 0.2);
+  color: #db5461;
+}
+
+/* Capacity indicators */
+.res-btn-danger {
+  width: 100%;
+  text-align: left;
+  padding: 4px 8px;
+  background-color: #ea580c; /* Orange-600 for full capacity */
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+.res-btn-danger:hover {
+  background-color: #c2410c;
+  transform: translateX(2px);
+}
+
+.res-btn-progress {
+  width: 100%;
+  text-align: left;
+  padding: 4px 8px;
+  background-color: #4f46e5; /* Indigo-600 for partial capacity */
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+.res-btn-progress:hover {
+  background-color: #4338ca;
+  transform: translateX(2px);
+}
