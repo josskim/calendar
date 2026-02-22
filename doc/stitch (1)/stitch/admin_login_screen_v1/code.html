@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Login - Reservation Management System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#da5260",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#201214",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .login-card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(218, 82, 96, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display">
+<!-- Top Navigation Bar (Simplified for Login) -->
+<header class="w-full px-6 py-4 flex items-center justify-between bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
+<div class="flex items-center gap-2">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-xl">event_available</span>
+</div>
+<span class="text-lg font-bold tracking-tight text-gray-900 dark:text-white">RMS Admin</span>
+</div>
+<div>
+<a class="text-sm font-medium text-primary hover:underline" href="#">Support Portal</a>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 flex items-center justify-center p-6">
+<div class="w-full max-w-md">
+<!-- Branding Header (Outside Card) -->
+<div class="text-center mb-8">
+<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Reservation Management System</h1>
+<p class="text-primary font-semibold tracking-wide uppercase text-xs">Secure Administrator Gateway</p>
+</div>
+<!-- Login Card -->
+<div class="bg-white dark:bg-zinc-900 rounded-xl p-8 login-card-shadow border border-primary/5">
+<div class="mb-8">
+<h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Admin Login</h2>
+<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Please enter your credentials to access the dashboard.</p>
+</div>
+<form class="space-y-5" onsubmit="return false;">
+<!-- Username Field -->
+<div class="space-y-2">
+<label class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2" for="username">
+<span class="material-symbols-outlined text-lg">person</span>
+                            Username
+                        </label>
+<input class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200 placeholder:text-gray-400" id="username" name="username" placeholder="admin_user_01" type="text"/>
+</div>
+<!-- Password Field -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2" for="password">
+<span class="material-symbols-outlined text-lg">lock</span>
+                                Password
+                            </label>
+<a class="text-xs font-medium text-primary hover:underline" href="#">Forgot password?</a>
+</div>
+<div class="relative">
+<input class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200 placeholder:text-gray-400" id="password" name="password" placeholder="••••••••••••" type="password"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="pt-2">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/20 transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]" type="submit">
+<span class="material-symbols-outlined">login</span>
+                            Login to Dashboard
+                        </button>
+</div>
+</form>
+<!-- Security Disclaimer Footer inside card -->
+<div class="mt-8 pt-6 border-t border-gray-100 dark:border-zinc-800">
+<div class="flex items-start gap-3 bg-primary/5 dark:bg-primary/10 p-4 rounded-lg">
+<span class="material-symbols-outlined text-primary text-xl mt-0.5">verified_user</span>
+<p class="text-[11px] leading-relaxed text-gray-600 dark:text-gray-400 font-medium">
+<strong class="text-primary block mb-1">Secure Administrator Area</strong>
+                            Unauthorized access is prohibited. Your IP address and session data are being logged for security auditing purposes.
+                        </p>
+</div>
+</div>
+</div>
+<!-- Additional Help Links -->
+<div class="mt-8 flex justify-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<span class="text-gray-300 dark:text-zinc-700">|</span>
+<a class="hover:text-primary transition-colors" href="#">System Status</a>
+<span class="text-gray-300 dark:text-zinc-700">|</span>
+<a class="hover:text-primary transition-colors" href="#">Contact IT</a>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="py-6 text-center text-xs text-gray-400 dark:text-zinc-600">
+        © 2024 Reservation Management System. All rights reserved. Version 1.2.4-stable
+    </footer>
+</body></html>

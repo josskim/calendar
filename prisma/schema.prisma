@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model reservation {
+  id             BigInt   @id @default(autoincrement())
+  type           String
+  category       String
+  use_date       DateTime
+  nights         Int
+  quantity       Int
+  guest_name     String
+  phone          String
+  people_count   Int
+  user_type      String
+  total_amount   Int
+  extra_amount   Int      @default(0)
+  payment_status String
+  deposit_date   DateTime
+  cancel_date    DateTime
+  source         String
+  memo           String
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@map("reservations")
+}
+
+model rdmin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  createdAt DateTime
+}

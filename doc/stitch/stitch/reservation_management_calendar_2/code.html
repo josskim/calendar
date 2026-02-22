@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reservation Management Calendar</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#DB5461",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#201214",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body { font-family: 'Manrope', sans-serif; }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            border-top: 1px solid #e5e7eb;
+            border-left: 1px solid #e5e7eb;
+        }
+        .calendar-cell {
+            min-height: 180px;
+            border-right: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 8px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen">
+<div class="flex flex-col min-h-screen">
+<header class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-50">
+<div class="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<div class="bg-primary text-white p-1.5 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined">calendar_today</span>
+</div>
+<h1 class="text-xl font-extrabold tracking-tight text-primary">StaySync</h1>
+</div>
+<nav class="hidden md:flex items-center gap-1 ml-4">
+<a class="px-4 py-2 rounded-lg bg-primary/10 text-primary font-bold text-sm" href="#">예약캘린더</a>
+<a class="px-4 py-2 rounded-lg text-slate-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium text-sm transition-colors" href="#">예약리스트</a>
+<a class="px-4 py-2 rounded-lg text-slate-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium text-sm transition-colors" href="#">년도별매출</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 pr-4 border-r border-zinc-200 dark:border-zinc-800">
+<button class="p-2 text-slate-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="flex items-center gap-3 pl-2">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold text-slate-800 dark:text-zinc-100">관리자님</p>
+<p class="text-[10px] text-slate-500">포근한 펜션</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border-2 border-primary/10">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwHnuwpXdHL_E2w50uSiwLS2E2RM6w9Xrp1bfR0Isel5tstYxC9nyxMbsLI1JzOdJQlid7Te142H2IbvuOt-gEWHi2XxsdTJdxODrIPl7TTJJztS4QKs4HkCA4XII46gjGAbrZkqowO1B46t8p5dUMNDQy8leuiyB2BRvPmsgiYrlYorx96QL2RdiFvNWLF-7JxU9s_sWH7WXNJsjmliRpHgrpgN0bGfCraBCL68oWeisIxc-uX0IhqleGqYeRH4i057oqgwTBE9Vr"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-[1400px] mx-auto w-full px-6 py-6">
+<div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center w-10 h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<div class="flex items-center gap-2">
+<select class="form-select bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-bold py-2 pl-3 pr-10 focus:ring-primary focus:border-primary transition-all">
+<option>2023년</option>
+<option selected="">2024년</option>
+<option>2025년</option>
+</select>
+<select class="form-select bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-bold py-2 pl-3 pr-10 focus:ring-primary focus:border-primary transition-all">
+<option>3월</option>
+<option>4월</option>
+<option selected="">5월</option>
+<option>6월</option>
+</select>
+</div>
+<button class="flex items-center justify-center w-10 h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<h2 class="text-xl font-black text-slate-800 dark:text-zinc-100">2024년 5월</h2>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 text-sm font-bold rounded-lg transition-colors">이전달</button>
+<button class="px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-bold rounded-lg transition-colors">오늘</button>
+<button class="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 text-sm font-bold rounded-lg transition-colors">다음달</button>
+</div>
+</div>
+<div class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+<div class="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-800">
+<div class="py-3 text-center text-xs font-black text-red-500 uppercase tracking-widest bg-zinc-50/50 dark:bg-zinc-800/30">Sun</div>
+<div class="py-3 text-center text-xs font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest bg-zinc-50/50 dark:bg-zinc-800/30">Mon</div>
+<div class="py-3 text-center text-xs font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest bg-zinc-50/50 dark:bg-zinc-800/30">Tue</div>
+<div class="py-3 text-center text-xs font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest bg-zinc-50/50 dark:bg-zinc-800/30">Wed</div>
+<div class="py-3 text-center text-xs font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest bg-zinc-50/50 dark:bg-zinc-800/30">Thu</div>
+<div class="py-3 text-center text-xs font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest bg-zinc-50/50 dark:bg-zinc-800/30">Fri</div>
+<div class="py-3 text-center text-xs font-black text-blue-500 uppercase tracking-widest bg-zinc-50/50 dark:bg-zinc-800/30">Sat</div>
+</div>
+<div class="calendar-grid bg-zinc-200/20 dark:bg-zinc-800/20">
+<div class="calendar-cell bg-white dark:bg-zinc-900 opacity-40">
+<span class="text-sm font-medium text-slate-400">28</span>
+</div>
+<div class="calendar-cell bg-white dark:bg-zinc-900 opacity-40">
+<span class="text-sm font-medium text-slate-400">29</span>
+</div>
+<div class="calendar-cell bg-white dark:bg-zinc-900 opacity-40">
+<span class="text-sm font-medium text-slate-400">30</span>
+</div>
+<script>
+                    const daysInMonth = 31;
+                    const startDayOffset = 3; // Starts on Wed (0:Sun, 1:Mon, 2:Tue, 3:Wed)
+                    const totalCells = 35; 
+                    // Logic implemented via direct HTML expansion below
+                </script>
+<div class="calendar-cell bg-white dark:bg-zinc-900">
+<div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">1</span></div>
+<div class="flex flex-col gap-1">
+<button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button>
+</div>
+</div>
+<div class="calendar-cell bg-white dark:bg-zinc-900">
+<div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">2</span></div>
+<div class="flex flex-col gap-1">
+<button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button>
+</div>
+</div>
+<div class="calendar-cell bg-white dark:bg-zinc-900">
+<div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">3</span></div>
+<div class="flex flex-col gap-1">
+<button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button>
+</div>
+</div>
+<div class="calendar-cell bg-blue-50/30 dark:bg-blue-900/10">
+<div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-blue-600">4</span></div>
+<div class="flex flex-col gap-1">
+<button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button>
+</div>
+</div>
+<div class="calendar-cell bg-red-50/30 dark:bg-red-900/10">
+<div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-red-600">5</span></div>
+<div class="flex flex-col gap-1">
+<button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button>
+</div>
+</div>
+<div class="calendar-cell bg-white dark:bg-zinc-900">
+<div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">6</span></div>
+<div class="flex flex-col gap-1">
+<button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button>
+</div>
+</div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">7</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">8</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">9</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">10</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-blue-50/30 dark:bg-blue-900/10"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-blue-600">11</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-red-50/30 dark:bg-red-900/10"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-red-600">12</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">13</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">14</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-primary/5 dark:bg-primary/10 border-2 border-primary/50">
+<div class="flex justify-between items-start mb-2">
+<span class="text-sm font-black text-primary">15</span>
+<span class="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded uppercase">Today</span>
+</div>
+<div class="flex flex-col gap-1">
+<button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button>
+<button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button>
+</div>
+</div>
+<script>
+                    // Function to create a cell (Conceptual)
+                    // For the final output, I'll repeat the cell for 16-31 to ensure visually "EVERY" date cell is accurate.
+                </script>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">16</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">17</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-blue-50/30 dark:bg-blue-900/10"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-blue-600">18</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-red-50/30 dark:bg-red-900/10"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-red-600">19</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">20</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">21</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">22</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">23</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">24</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-blue-50/30 dark:bg-blue-900/10"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-blue-600">25</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-red-50/30 dark:bg-red-900/10"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-red-600">26</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">27</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">28</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">29</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">30</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900"><div class="flex justify-between items-start mb-2"><span class="text-sm font-bold text-slate-700 dark:text-zinc-300">31</span></div><div class="flex flex-col gap-1"><button class="w-full text-left px-2 py-1 bg-primary text-white text-[11px] font-bold rounded truncate shadow-sm">201호(김지미/15명/전화)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">201호+202호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">101호</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉1부(2/6)</button><button class="w-full text-left px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold rounded text-slate-600 dark:text-zinc-300 truncate">캠프닉2부</button></div></div>
+<div class="calendar-cell bg-white dark:bg-zinc-900 opacity-40">
+<span class="text-sm font-medium text-slate-400">1</span>
+</div>
+</div>
+</div>
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform z-50">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+</main>
+<footer class="bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 py-4 px-6">
+<div class="max-w-[1400px] mx-auto flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded bg-primary"></span>
+<span class="text-xs font-bold text-slate-600 dark:text-zinc-400">예약확정 (전체강조)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded bg-zinc-200 dark:bg-zinc-700"></span>
+<span class="text-xs font-bold text-slate-600 dark:text-zinc-400">가예약/상담</span>
+</div>
+</div>
+<div class="text-xs text-slate-400">
+                © 2024 StaySync Reservation System. All rights reserved.
+            </div>
+</div>
+</footer>
+</div>
+
+</body></html>
