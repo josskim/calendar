@@ -58,7 +58,7 @@ export function LoginForm() {
         type="submit"
         className="w-full rounded-lg bg-[#DB5461] py-4 text-sm font-bold text-white shadow-lg shadow-[#DB5461]/20 transition-all hover:bg-[#c44b57] active:scale-[0.98]"
       >
-        Sign In to Reservation System
+        Sign In to Reservation System...
       </button>
     </form>
   );

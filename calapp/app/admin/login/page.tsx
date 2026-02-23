@@ -89,7 +89,7 @@ export default function AdminLoginPage() {
             </div>
 
             <div className="pt-4 text-center">
-              <p className="text-[10px] text-[#856669]/50 uppercase tracking-widest">
+              <p className="text-[10px] text-[#3F88C5]/20 uppercase tracking-widest">
                 StayNamcheon Administration Portal
               </p>
             </div>
