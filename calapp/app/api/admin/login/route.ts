@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false }, { status: 401 });
   }
 
-  const admin = await prisma.rdmin.findUnique({
+  const admin = await prisma.admin.findUnique({
     where: { username },
   });
 
@@ -21,4 +21,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ success: true });
 }
-
