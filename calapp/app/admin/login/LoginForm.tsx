@@ -1,27 +1,60 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { getAdminAuthToken, setAdminAuthToken } from "../auth-client";
 import { EmailIcon } from "./Icons";
 import { PasswordField } from "./PasswordField";
 
 export function LoginForm() {
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const token = getAdminAuthToken();
+    if (token) {
+      window.location.replace("/admin/calendar");
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    setSubmitting(true);
+
     const formData = new FormData(e.currentTarget);
     const adminId = formData.get("adminId") as string;
-    const password = formData.get("password") as string;
+    formData.delete("adminId");
+    formData.set("username", adminId);
 
-    if (adminId === "stay" && password === "hare4828") {
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        setError("아이디 또는 비밀번호를 확인해 주세요.");
+        return;
+      }
+
+      const tokenValue = `ok:${Date.now()}`;
+      setAdminAuthToken(tokenValue);
       window.location.href = "/admin/calendar";
-    } else {
-      // No specific redirect target provided for failed login,
-      // so removing the alert as per instruction.
-      // A redirect to the login page with an error state could be added here.
-      // e.g., window.location.href = "/login?error=true";
+    } catch (err) {
+      console.error(err);
+      setError("로그인 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600">
+          {error}
+        </div>
+      )}
       <div className="space-y-2">
         <label
           htmlFor="adminId"
@@ -56,9 +89,10 @@ export function LoginForm() {
 
       <button
         type="submit"
+        disabled={submitting}
         className="w-full rounded-lg bg-[#DB5461] py-4 text-sm font-bold text-white shadow-lg shadow-[#DB5461]/20 transition-all hover:bg-[#c44b57] active:scale-[0.98]"
       >
-        Sign In to Reservation System...
+        {submitting ? "Signing in..." : "Sign In to Reservation System..."}
       </button>
     </form>
   );

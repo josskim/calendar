@@ -5,6 +5,7 @@ import {
   SettingsIcon,
 } from "./calendar/CalIcons";
 import { NavLinks } from "./NavLinks";
+import { AuthGate } from "../auth-client";
 
 export default function AdminDashboardLayout({
   children,
@@ -12,8 +13,9 @@ export default function AdminDashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8f6f6] dark:bg-[#201214] text-slate-900 dark:text-slate-100 font-['Manrope',_ui-sans-serif,_system-ui]">
-      <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-50">
+    <AuthGate>
+      <div className="flex flex-col min-h-screen bg-[#f8f6f6] dark:bg-[#201214] text-slate-900 dark:text-slate-100 font-['Manrope',_ui-sans-serif,_system-ui]">
+        <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-50">
         <div className="md:hidden w-full px-2 h-14 flex items-center gap-1">
           <Link href="/admin/calendar" className="flex items-center gap-1 shrink-0">
             <div className="bg-[#DB5461] text-white p-1 rounded-md flex items-center justify-center">
@@ -85,8 +87,9 @@ export default function AdminDashboardLayout({
             </div>
           </div>
         </div>
-      </header>
-      {children}
-    </div>
+        </header>
+        {children}
+      </div>
+    </AuthGate>
   );
 }
