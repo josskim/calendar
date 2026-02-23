@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -32,7 +32,7 @@ type ListResponse = {
     items: ReservationItem[];
 };
 
-export default function ReservationListPage() {
+function ReservationListPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -293,5 +293,13 @@ export default function ReservationListPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function ReservationListPage() {
+    return (
+        <Suspense fallback={<div className="p-10 text-center text-slate-400">Loading...</div>}>
+            <ReservationListPageContent />
+        </Suspense>
     );
 }
