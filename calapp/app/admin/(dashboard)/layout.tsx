@@ -20,7 +20,7 @@ export default function AdminDashboardLayout({
               <CalendarTodayIcon className="w-4 h-4" />
             </div>
             <h1 className="text-[10px] font-extrabold tracking-tight text-[#DB5461] whitespace-nowrap">
-              StaySync
+              StayNamcheon
             </h1>
           </Link>
           <NavLinks compact />
@@ -39,7 +39,7 @@ export default function AdminDashboardLayout({
             <SettingsIcon className="w-4 h-4" />
           </button>
           <span className="text-[9px] font-bold text-slate-500 whitespace-nowrap shrink-0">
-            愿由ъ옄?? StaySync
+            관리자님
           </span>
         </div>
 
@@ -50,7 +50,7 @@ export default function AdminDashboardLayout({
                 <CalendarTodayIcon className="w-5 h-5" />
               </div>
               <h1 className="text-2xl font-extrabold tracking-tight text-[#DB5461]">
-                StaySync
+                StayNamcheon
               </h1>
             </Link>
             <NavLinks />
@@ -77,7 +77,7 @@ export default function AdminDashboardLayout({
                 <p className="text-xs font-bold text-slate-800 dark:text-zinc-100">
                   관리자님
                 </p>
-                <p className="text-[10px] text-slate-500">StaySync</p>
+                <p className="text-[10px] text-slate-500">StayNamcheon</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-[#DB5461]/20 flex items-center justify-center overflow-hidden border-2 border-[#DB5461]/10">
                 <div className="w-full h-full bg-[#DB5461]/30" />

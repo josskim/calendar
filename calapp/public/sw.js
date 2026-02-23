@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "staysync-v1";
+﻿const CACHE_NAME = "StayNamcheon-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());

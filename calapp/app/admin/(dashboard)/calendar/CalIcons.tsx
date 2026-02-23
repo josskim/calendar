@@ -1,4 +1,4 @@
-// SVG icons for admin calendar (StaySync design)
+// SVG icons for admin calendar (StayNamcheon design)
 
 export function CalendarTodayIcon({ className }: { className?: string }) {
   return (

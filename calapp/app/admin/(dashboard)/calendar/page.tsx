@@ -435,7 +435,7 @@ function CalendarContent() {
               </div>
             </div>
             <div className="text-xs text-slate-400">
-              © 2024 StaySync Reservation System. All rights reserved.
+              © 2024 StayNamcheon Reservation System. All rights reserved.
             </div>
           </div>
         </footer>
