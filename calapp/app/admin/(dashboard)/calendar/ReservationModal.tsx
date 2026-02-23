@@ -10,7 +10,7 @@ type ReservationModalProps = {
   defaultCategory?: string;
   initialData?: any;
   allReservations?: any[];
-  onSaveSuccess?: () => void;
+  onSaveSuccess?: (saved?: { use_date?: string }) => void;
 };
 
 const SOURCE_OPTIONS = [
@@ -213,7 +213,7 @@ export function ReservationModal({
       }
 
       if (onSaveSuccess) {
-        onSaveSuccess();
+        onSaveSuccess({ use_date: data?.use_date || payload.use_date });
       }
       router.refresh();
       onClose();
@@ -463,7 +463,7 @@ export function ReservationModal({
                       type="number"
                       min={0}
                       className={`w-[70px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] py-2 px-3 focus:outline-none focus:ring-1 ${accentBorder}`}
-                      value={form.people_count}
+                      value={form.people_count === 0 ? "" : form.people_count}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, people_count: Number(e.target.value) || 0 }))
                       }

@@ -71,7 +71,7 @@ function SalesPageContent() {
     const yearly = data?.yearly;
 
     return (
-        <main className="p-6 max-w-[1400px] mx-auto w-full">
+        <main className="calendar-viewport p-6 max-w-[1400px] mx-auto w-full">
 
             {/* 연도 네비게이션 */}
             <div className="flex items-center justify-center gap-4 mb-8">

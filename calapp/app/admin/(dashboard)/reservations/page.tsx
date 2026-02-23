@@ -77,7 +77,7 @@ export default function ReservationListPage() {
     };
 
     return (
-        <main className="p-6 max-w-[1400px] mx-auto w-full">
+        <main className="calendar-viewport p-6 max-w-[1400px] mx-auto w-full">
             <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
                 <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
                     <h2 className="text-xl font-black text-slate-800 dark:text-zinc-100 tracking-tight">

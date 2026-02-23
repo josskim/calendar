@@ -121,6 +121,7 @@ function buildCalendarCells(year: number, month: number): CellDay[] {
 
 function CalendarContent() {
   const today = new Date();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialYear = parseInt(searchParams.get("year") || today.getFullYear().toString(), 10);
   const initialMonth = parseInt(searchParams.get("month") || (today.getMonth() + 1).toString(), 10);
@@ -142,6 +143,7 @@ function CalendarContent() {
   const [modalSelectedReservation, setModalSelectedReservation] = useState<any | undefined>();
   const [modalDayReservations, setModalDayReservations] = useState<any[]>([]);
   const [reservationsByDate, setReservationsByDate] = useState<Record<string, any[]>>({});
+  const [focusedIsoDate, setFocusedIsoDate] = useState<string | null>(null);
 
   const cells = buildCalendarCells(year, month);
 
@@ -166,6 +168,21 @@ function CalendarContent() {
   useEffect(() => {
     fetchReservations();
   }, [year, month]);
+
+  useEffect(() => {
+    if (!focusedIsoDate) return;
+
+    const highlightedCell = document.querySelector<HTMLElement>(`[data-cell-iso="${focusedIsoDate}"]`);
+    if (highlightedCell) {
+      highlightedCell.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }
+
+    const timer = window.setTimeout(() => {
+      setFocusedIsoDate(null);
+    }, 2200);
+
+    return () => window.clearTimeout(timer);
+  }, [focusedIsoDate, reservationsByDate, year, month]);
 
   const goPrev = () => {
     if (month === 1) {
@@ -204,6 +221,29 @@ function CalendarContent() {
     setModalOpen(true);
   };
 
+  const handleSaveSuccess = async (saved?: { use_date?: string }) => {
+    const savedUseDate = saved?.use_date?.slice(0, 10);
+    if (!savedUseDate) {
+      await fetchReservations();
+      return;
+    }
+
+    const savedDate = new Date(savedUseDate);
+    const targetYear = savedDate.getFullYear();
+    const targetMonth = savedDate.getMonth() + 1;
+
+    setFocusedIsoDate(savedUseDate);
+
+    if (targetYear !== year || targetMonth !== month) {
+      setYear(targetYear);
+      setMonth(targetMonth);
+      router.replace(`/admin/calendar?year=${targetYear}&month=${targetMonth}`);
+      return;
+    }
+
+    await fetchReservations();
+  };
+
   const monthNames = [
     "1월", "2월", "3월", "4월", "5월", "6월",
     "7월", "8월", "9월", "10월", "11월", "12월",
@@ -211,7 +251,10 @@ function CalendarContent() {
 
   return (
     <>
-      <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 py-6">
+      <main
+        className="calendar-viewport flex-1 max-w-[1400px] mx-auto w-full px-6 py-6"
+        style={{ touchAction: "pan-x pan-y pinch-zoom" }}
+      >
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-3">
             <button
@@ -256,29 +299,6 @@ function CalendarContent() {
               {year}년 {month}월
             </h2>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={goPrev}
-              className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 text-sm font-bold rounded-lg transition-colors"
-            >
-              이전달
-            </button>
-            <button
-              type="button"
-              onClick={goToday}
-              className="px-4 py-2 bg-[#DB5461] text-white hover:bg-[#c44350] text-sm font-bold rounded-lg transition-all active:scale-95 shadow-md"
-            >
-              오늘
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 text-sm font-bold rounded-lg transition-colors"
-            >
-              다음달
-            </button>
-          </div>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
@@ -300,6 +320,7 @@ function CalendarContent() {
               return (
                 <div
                   key={cell.iso + cell.day}
+                  data-cell-iso={cell.iso}
                   role="button"
                   tabIndex={0}
                   onClick={() => !isOtherMonth && openModal(cell.iso)}
@@ -309,7 +330,7 @@ function CalendarContent() {
                       openModal(cell.iso);
                     }
                   }}
-                  className={`calendar-cell ${isOtherMonth ? "bg-white dark:bg-zinc-900 opacity-40" : "cursor-pointer"} ${cell.isToday
+                  className={`calendar-cell ${focusedIsoDate === cell.iso ? "calendar-cell-focused" : ""} ${isOtherMonth ? "bg-white dark:bg-zinc-900 opacity-40" : "cursor-pointer"} ${cell.isToday
                     ? "bg-[#DB5461]/5 dark:bg-[#DB5461]/10 border-2 border-[#DB5461]/50"
                     : ([0, 5, 6].includes(cell.date.getDay())
                       ? "bg-[#DB5461]/10"
@@ -440,7 +461,7 @@ function CalendarContent() {
         defaultCategory={modalDefaultCategory}
         initialData={modalSelectedReservation}
         allReservations={modalDayReservations}
-        onSaveSuccess={fetchReservations}
+        onSaveSuccess={handleSaveSuccess}
       />
     </>
   );
