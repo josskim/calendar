@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
           </div>
           <div className="relative z-20 max-w-xl">
             <h1 className="text-5xl font-extrabold leading-tight text-white mb-6">
-              Streamline your <br />
+              StayNamcheon <br />
               <span className="text-white/80">reservation workflow.</span>
             </h1>
             <p className="text-lg text-white/90 font-medium leading-relaxed">
