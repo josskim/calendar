@@ -184,14 +184,31 @@ export function ReservationModal({
     const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | undefined;
     const mode = submitter?.dataset?.mode || "register";
 
+    const totalAmount = form.total_amount ? parseInt(form.total_amount.replace(/,/g, ""), 10) : 0;
+    const extraAmount = form.extra_amount ? parseInt(form.extra_amount.replace(/,/g, ""), 10) : 0;
+    const finalAmount = totalAmount + extraAmount;
+
+    if (mode === "register") {
+      const confirmMessage =
+        `아래 내용으로 저장할까요?\n\n` +
+        `이용일: ${form.use_date}\n` +
+        `호실: ${form.category}\n` +
+        `인원: ${form.people_count}명\n` +
+        `금액: ${finalAmount.toLocaleString()}원`;
+
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+    }
+
     setError("");
     setSubmitting(true);
     try {
       const phoneToSave = form.phone.replace(/-/g, "");
       const payload: any = {
         ...form,
-        total_amount: form.total_amount ? parseInt(form.total_amount.replace(/,/g, ""), 10) : 0,
-        extra_amount: form.extra_amount ? parseInt(form.extra_amount.replace(/,/g, ""), 10) : 0,
+        total_amount: totalAmount,
+        extra_amount: extraAmount,
         phone: phoneToSave,
         cancel_date: form.payment_status === "cancelled" ? form.deposit_date : form.deposit_date,
       };

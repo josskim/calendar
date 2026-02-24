@@ -375,9 +375,9 @@ function CalendarContent() {
                       let btnClass = isCompleted ? "res-btn-primary" : "res-btn-secondary";
                       if (isCampnic) {
                         if (count >= 6) {
-                          btnClass = "res-btn-danger"; // 마감 (주황색)
+                          btnClass = "res-btn-progress"; // 마감도 캠프닉 블루계열
                         } else if (count > 0) {
-                          btnClass = "res-btn-primary"; // 예약 있음 (기본 빨간색)
+                          btnClass = "res-btn-progress"; // 예약 있음 캠프닉 블루계열
                         }
                       }
 
