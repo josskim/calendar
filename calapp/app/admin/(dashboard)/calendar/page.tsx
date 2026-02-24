@@ -368,7 +368,6 @@ function CalendarContent() {
                   <div className="flex flex-col gap-1.5">
                     {FIXED_SLOTS.map((slot) => {
                       const cellReservations = list.filter((r) => r.category === slot.label && r.payment_status !== "cancelled");
-                      const cancelledReservation = list.find((r) => r.category === slot.label && r.payment_status === "cancelled");
                       const isCampnic = slot.label.includes("캠프닉");
                       const count = cellReservations.length;
 
@@ -380,10 +379,6 @@ function CalendarContent() {
                       }
 
                       const isCompleted = isCampnic ? count >= 6 : !!reservation;
-                      if (!reservation && cancelledReservation) {
-                        reservation = cancelledReservation;
-                      }
-
                       let btnClass = isCompleted ? "res-btn-primary" : "res-btn-secondary";
                       if (isCampnic) {
                         if (count >= 6) {
