@@ -316,7 +316,8 @@ function CalendarContent() {
           <div className="calendar-grid bg-zinc-100/50 dark:bg-zinc-800/20">
             {cells.map((cell) => {
               const list = reservationsByDate[cell.iso] || [];
-              const hasCancelled = list.some((r) => r.payment_status === "cancelled");
+              const cancelledCount = list.filter((r) => r.payment_status === "cancelled").length;
+              const hasCancelled = cancelledCount > 0;
               const isOtherMonth = !cell.isCurrentMonth;
               return (
                 <div
@@ -339,32 +340,32 @@ function CalendarContent() {
                     }`}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span
-                      className={`text-sm font-bold ${cell.isToday ? "font-black text-[#DB5461]" : ""
-                        } ${isOtherMonth
-                          ? "text-slate-400"
-                          : (cell.date.getDay() === 0
-                            ? "text-red-600"
-                            : cell.date.getDay() === 6
-                              ? "text-blue-600"
-                              : "text-slate-700 dark:text-zinc-300")
-                        }`}
-                    >
-                      {cell.day}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span
+                        className={`text-sm font-bold ${cell.isToday ? "font-black text-[#DB5461]" : ""
+                          } ${isOtherMonth
+                            ? "text-slate-400"
+                            : (cell.date.getDay() === 0
+                              ? "text-red-600"
+                              : cell.date.getDay() === 6
+                                ? "text-blue-600"
+                                : "text-slate-700 dark:text-zinc-300")
+                          }`}
+                      >
+                        {cell.day}
+                      </span>
+                      {hasCancelled && (
+                        <span className="inline-flex items-center rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold dark:bg-amber-900/30 dark:text-amber-300">
+                          예약취소{cancelledCount}건
+                        </span>
+                      )}
+                    </div>
                     {cell.isToday && (
                       <span className="bg-[#DB5461] text-white text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tight">
                         Today
                       </span>
                     )}
                   </div>
-                  {hasCancelled && (
-                    <div className="mb-1.5">
-                      <span className="inline-flex items-center rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold dark:bg-amber-900/30 dark:text-amber-300">
-                        Cancelled data
-                      </span>
-                    </div>
-                  )}
                   <div className="flex flex-col gap-1.5">
                     {FIXED_SLOTS.map((slot) => {
                       const cellReservations = list.filter((r) => r.category === slot.label && r.payment_status !== "cancelled");
