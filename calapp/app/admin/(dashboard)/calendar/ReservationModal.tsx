@@ -38,9 +38,11 @@ export function ReservationModal({
   const [error, setError] = useState("");
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
-  // Helper to find reservation by category
-  const findRes = (category: string) =>
-    allReservations.find(r => r.category === category && r.payment_status !== 'cancelled');
+  const findLatestRes = (category: string) =>
+    allReservations.find((r) => r.category === category && r.payment_status !== "cancelled")
+    || allReservations.find((r) => r.category === category && r.payment_status === "cancelled");
+
+  const cancelledReservations = allReservations.filter((r) => r.payment_status === "cancelled");
 
   // Helper to populate form from data
   const fillForm = (data: any, fallbackCategory?: string) => {
@@ -131,7 +133,7 @@ export function ReservationModal({
         if (nextType === 'pension') {
           const targetCat = defaultCategory || PENSION_ROOMS[0];
           setActiveTabId(targetCat);
-          const res = findRes(targetCat);
+          const res = findLatestRes(targetCat);
           fillForm(res, targetCat);
         } else {
           setActiveTabId("new");
@@ -269,7 +271,7 @@ export function ReservationModal({
         <div className="flex bg-slate-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto scrollbar-hide">
           {form.type === "pension" ? (
             PENSION_ROOMS.map((room) => {
-              const res = findRes(room);
+              const res = findLatestRes(room);
               const isActive = activeTabId === room;
               return (
                 <button
@@ -286,7 +288,11 @@ export function ReservationModal({
                     }`}
                 >
                   <span>{room}</span>
-                  {res && <span className="text-[10px] font-medium text-slate-400">({res.guest_name})</span>}
+                  {res && (
+                    <span className={`text-[10px] font-medium ${res.payment_status === "cancelled" ? "text-amber-500" : "text-slate-400"}`}>
+                      ({res.guest_name}{res.payment_status === "cancelled" ? " cancel" : ""})
+                    </span>
+                  )}
                 </button>
               );
             })
@@ -334,6 +340,34 @@ export function ReservationModal({
           )}
 
         </div>
+
+        {cancelledReservations.length > 0 && (
+          <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-amber-50/70 dark:bg-amber-900/10">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">Cancelled list</span>
+              {cancelledReservations.map((res) => {
+                const tabId = `cancel-${String(res.id)}`;
+                const isActive = activeTabId === tabId;
+                return (
+                  <button
+                    key={tabId}
+                    type="button"
+                    onClick={() => {
+                      setActiveTabId(tabId);
+                      fillForm(res);
+                    }}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors ${isActive
+                      ? "border-amber-500 text-amber-700 bg-white dark:bg-zinc-900"
+                      : "border-amber-200 text-amber-600 hover:bg-white/80 dark:hover:bg-zinc-800"
+                      }`}
+                  >
+                    {res.category} {res.guest_name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="overflow-y-auto p-6 scrollbar-hide">
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">

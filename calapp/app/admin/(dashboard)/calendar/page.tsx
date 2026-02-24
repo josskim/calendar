@@ -48,7 +48,7 @@ const SourceIcon = ({ source }: { source: string }) => {
     case "here": // 여기어때
       return (
         <span className="px-0.5 min-w-[12px] h-2.5 bg-[#f2134d] text-white flex items-center justify-center text-[7px] font-black rounded-[1px] shrink-0 text-center">
-          Ya
+          gi
         </span>
       );
     case "other":
@@ -316,6 +316,7 @@ function CalendarContent() {
           <div className="calendar-grid bg-zinc-100/50 dark:bg-zinc-800/20">
             {cells.map((cell) => {
               const list = reservationsByDate[cell.iso] || [];
+              const hasCancelled = list.some((r) => r.payment_status === "cancelled");
               const isOtherMonth = !cell.isCurrentMonth;
               return (
                 <div
@@ -357,9 +358,17 @@ function CalendarContent() {
                       </span>
                     )}
                   </div>
+                  {hasCancelled && (
+                    <div className="mb-1.5">
+                      <span className="inline-flex items-center rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold dark:bg-amber-900/30 dark:text-amber-300">
+                        Cancelled data
+                      </span>
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1.5">
                     {FIXED_SLOTS.map((slot) => {
                       const cellReservations = list.filter((r) => r.category === slot.label && r.payment_status !== "cancelled");
+                      const cancelledReservation = list.find((r) => r.category === slot.label && r.payment_status === "cancelled");
                       const isCampnic = slot.label.includes("캠프닉");
                       const count = cellReservations.length;
 
@@ -371,6 +380,9 @@ function CalendarContent() {
                       }
 
                       const isCompleted = isCampnic ? count >= 6 : !!reservation;
+                      if (!reservation && cancelledReservation) {
+                        reservation = cancelledReservation;
+                      }
 
                       let btnClass = isCompleted ? "res-btn-primary" : "res-btn-secondary";
                       if (isCampnic) {
