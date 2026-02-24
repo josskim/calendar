@@ -40,6 +40,7 @@ function ReservationListPageContent() {
 
     const [data, setData] = useState<ListResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         async function fetchData() {
@@ -60,6 +61,35 @@ function ReservationListPageContent() {
     }, [page]);
 
     const totalPages = data ? Math.ceil(data.total / limit) : 0;
+    const searchText = search.trim().toLowerCase();
+    const filteredItems = (data?.items || []).filter((item) => {
+        if (!searchText) return true;
+        const sourceLabel =
+            item.source === "naver"
+                ? "naver"
+                : item.source === "phone"
+                    ? "phone"
+                    : item.source === "nol"
+                        ? "nol"
+                        : item.source === "here"
+                            ? "here"
+                            : "other";
+        const haystack = [
+            item.id,
+            item.guest_name,
+            item.phone,
+            item.category,
+            item.type,
+            item.user_type,
+            item.memo || "",
+            sourceLabel,
+            item.payment_status,
+            item.use_date.slice(0, 10),
+        ]
+            .join(" ")
+            .toLowerCase();
+        return haystack.includes(searchText);
+    });
 
     const formatPhone = (phone: string) => {
         if (phone.length === 11) {
@@ -79,7 +109,16 @@ function ReservationListPageContent() {
     return (
         <main className="calendar-viewport p-6 max-w-[1400px] mx-auto w-full">
             <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-                <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
+                <div className="relative px-6 py-5 pr-[360px] border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/95 dark:bg-zinc-900/95 backdrop-blur sticky top-0 z-30">
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 w-[320px]">
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search reservations..."
+                            className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-slate-700 dark:text-zinc-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DB5461]/30 focus:border-[#DB5461]"
+                        />
+                    </div>
                     <h2 className="text-xl font-black text-slate-800 dark:text-zinc-100 tracking-tight">
                         예약 리스트
                     </h2>
@@ -112,7 +151,7 @@ function ReservationListPageContent() {
                                         데이터를 불러오는 중입니다...
                                     </td>
                                 </tr>
-                            ) : data?.items.length === 0 ? (
+                            ) : filteredItems.length === 0 ? (
                                 <tr>
                                     <td colSpan={11} className="px-4 py-20 text-center text-slate-400 font-medium bg-white dark:bg-zinc-900">
                                         예약 데이터가 없습니다.
@@ -122,7 +161,7 @@ function ReservationListPageContent() {
                                 // 이름+전화번호 기준으로 그룹 컬러 계산
                                 let groupIndex = 0;
                                 let prevKey = "";
-                                const groupMap = (data?.items || []).map((item) => {
+                                const groupMap = filteredItems.map((item) => {
                                     const key = `${item.guest_name}__${item.phone}`;
                                     if (key !== prevKey) {
                                         if (prevKey !== "") groupIndex++;
@@ -131,7 +170,7 @@ function ReservationListPageContent() {
                                     return groupIndex;
                                 });
 
-                                return data?.items.map((item, index) => {
+                                return filteredItems.map((item, index) => {
                                     const isCancelled = item.payment_status === "cancelled";
                                     const isEven = groupMap[index] % 2 === 0;
                                     // 그룹별 컬러 (같은 사람은 같은 색, 다른 사람은 반전)

@@ -302,18 +302,19 @@ function CalendarContent() {
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-800">
-            {WEEKDAYS.map((label, i) => (
-              <div
-                key={label}
-                className={`py-3 text-center text-xs font-black uppercase tracking-widest bg-zinc-50/50 dark:bg-zinc-800/30 ${i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-slate-500 dark:text-zinc-400"
-                  }`}
-              >
-                {label}
-              </div>
-            ))}
-          </div>
-          <div className="calendar-grid bg-zinc-100/50 dark:bg-zinc-800/20">
+          <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+            <div className="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20">
+              {WEEKDAYS.map((label, i) => (
+                <div
+                  key={label}
+                  className={`py-3 text-center text-xs font-black uppercase tracking-widest bg-zinc-50/95 dark:bg-zinc-900/95 backdrop-blur ${i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-slate-500 dark:text-zinc-400"
+                    }`}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div className="calendar-grid bg-zinc-100/50 dark:bg-zinc-800/20">
             {cells.map((cell) => {
               const list = reservationsByDate[cell.iso] || [];
               const cancelledCount = list.filter((r) => r.payment_status === "cancelled").length;
@@ -423,6 +424,7 @@ function CalendarContent() {
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
 

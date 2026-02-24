@@ -36,8 +36,12 @@ function fmt(n: number) {
 function SalesPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const MIN_YEAR = 2024;
+    const MAX_YEAR = 2026;
     const currentYear = new Date().getFullYear();
-    const [year, setYear] = useState(() => parseInt(searchParams.get("year") || currentYear.toString(), 10));
+    const initialYearRaw = parseInt(searchParams.get("year") || currentYear.toString(), 10);
+    const initialYear = Math.min(MAX_YEAR, Math.max(MIN_YEAR, initialYearRaw));
+    const [year, setYear] = useState(initialYear);
     const [data, setData] = useState<SalesResponse | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -58,15 +62,16 @@ function SalesPageContent() {
     }, [year, fetchData]);
 
     const handleYearChange = (y: number) => {
-        setYear(y);
-        router.replace(`/admin/sales?year=${y}`);
+        const nextYear = Math.min(MAX_YEAR, Math.max(MIN_YEAR, y));
+        setYear(nextYear);
+        router.replace(`/admin/sales?year=${nextYear}`);
     };
 
     // 차트 계산
     const months = data?.months || [];
     const maxTotal = Math.max(...months.map(m => m.total), 1);
 
-    const yearOptions = Array.from({ length: 8 }, (_, i) => currentYear - 3 + i);
+    const yearOptions = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => MIN_YEAR + i);
 
     const yearly = data?.yearly;
 
@@ -92,6 +97,7 @@ function SalesPageContent() {
                 </select>
                 <button
                     onClick={() => handleYearChange(year + 1)}
+                    disabled={year >= MAX_YEAR}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#DB5461] hover:border-[#DB5461]/40 font-bold text-sm transition-all shadow-sm"
                 >
                     다음 →
