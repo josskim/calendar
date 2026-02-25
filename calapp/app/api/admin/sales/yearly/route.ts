@@ -21,7 +21,13 @@ export async function GET(req: NextRequest) {
                 type: true,
                 total_amount: true,
                 extra_amount: true,
+                payment_status: true,
             },
+        });
+
+        const validReservations = reservations.filter((r) => {
+            const status = String(r.payment_status ?? "").trim().toLowerCase();
+            return status !== "cancelled" && status !== "취소";
         });
 
         // 월별 집계
@@ -37,7 +43,7 @@ export async function GET(req: NextRequest) {
             monthlyData[m] = { count: 0, total: 0, pension: 0, campnic: 0, extra: 0 };
         }
 
-        for (const r of reservations) {
+        for (const r of validReservations) {
             const date = new Date(r.use_date);
             // UTC 오프셋 보정 (한국 +9)
             const month = date.getUTCMonth() + 1;
@@ -64,11 +70,11 @@ export async function GET(req: NextRequest) {
 
         // 연간 합계
         const yearly = {
-            count: reservations.length,
-            total: reservations.reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
-            pension: reservations.filter(r => r.type !== "campnic").reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
-            campnic: reservations.filter(r => r.type === "campnic").reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
-            extra: reservations.reduce((s: number, r) => s + (r.extra_amount ?? 0), 0),
+            count: validReservations.length,
+            total: validReservations.reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
+            pension: validReservations.filter(r => r.type !== "campnic").reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
+            campnic: validReservations.filter(r => r.type === "campnic").reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
+            extra: validReservations.reduce((s: number, r) => s + (r.extra_amount ?? 0), 0),
         };
 
         return NextResponse.json({ year, yearly, months });
