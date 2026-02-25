@@ -75,17 +75,24 @@ export function ReservationModal({
         memo: data.memo || "",
       });
     } else {
-      setForm((f) => ({
-        ...f,
+      setForm({
         id: "",
         type: nextType,
-        category: fallbackCategory || f.category,
+        category: fallbackCategory || (nextType === "campnic" ? CAMPNIC_ROOMS[0] : PENSION_ROOMS[0]),
+        use_date: defaultDate ?? today,
+        nights: 1,
+        quantity: 1,
         guest_name: "",
         phone: "",
-        memo: "",
+        people_count: 2,
+        user_type: "일반",
         total_amount: "",
         extra_amount: "",
-      }));
+        payment_status: "confirmed",
+        deposit_date: today,
+        source: "phone",
+        memo: "",
+      });
     }
   };
 
