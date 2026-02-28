@@ -43,6 +43,35 @@ export function ReservationModal({
 
   const cancelledReservations = allReservations.filter((r) => r.payment_status === "cancelled" && r.type !== "campnic");
 
+  // KST(또는 로컬 시간대) 기준으로 오늘 날짜의 YYYY-MM-DD 구하기
+  const getLocalIsoDate = (d = new Date()) => {
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 10);
+    return localISOTime;
+  };
+  const today = getLocalIsoDate();
+
+  const [form, setForm] = useState({
+    id: "",
+    type: "pension",
+    category: PENSION_ROOMS[0],
+    use_date: defaultDate ?? today,
+    nights: 1,
+    quantity: 1,
+    guest_name: "",
+    phone: "",
+    people_count: 2,
+    user_type: "일반",
+    total_amount: "",
+    extra_amount: "",
+    payment_status: "confirmed",
+    deposit_date: today,
+    source: "phone",
+    memo: "",
+  });
+
+  const [checkedRooms, setCheckedRooms] = useState<string[]>([]);
+
   // Helper to populate form from data
   const fillForm = (data: any, fallbackCategory?: string) => {
     const nextType = data?.type || (fallbackCategory?.includes("캠프닉") ? "campnic" : "pension");
@@ -96,39 +125,12 @@ export function ReservationModal({
         memo: "",
       });
     }
+    setCheckedRooms([]); // 탭 전환이나 데이터 로드 시 체크박스 초기화
   };
-
-  // KST(또는 로컬 시간대) 기준으로 오늘 날짜의 YYYY-MM-DD 구하기
-  const getLocalIsoDate = (d = new Date()) => {
-    const tzOffset = d.getTimezoneOffset() * 60000;
-    const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 10);
-    return localISOTime;
-  };
-  const today = getLocalIsoDate();
-
-  const [form, setForm] = useState({
-    id: "",
-    type: "pension",
-    category: PENSION_ROOMS[0],
-    use_date: defaultDate ?? today,
-    nights: 1,
-    quantity: 1,
-    guest_name: "",
-    phone: "",
-    people_count: 2,
-    user_type: "일반",
-    total_amount: "",
-    extra_amount: "",
-    payment_status: "confirmed",
-    deposit_date: today,
-    source: "phone",
-    memo: "",
-  });
 
   useEffect(() => {
     if (open) {
       if (initialData) {
-        // 캠프닉이면 항상 신규추가 탭이 먼저 뜨도록, 펜션이면 해당 카테고리
         if (initialData.type === 'campnic') {
           setActiveTabId("new");
           fillForm(null, initialData.category);
@@ -151,7 +153,7 @@ export function ReservationModal({
         setForm((f) => ({
           ...f,
           use_date: defaultDate ?? f.use_date,
-          deposit_date: today, // 입금일은 항상 예약 접수한 오늘 날짜
+          deposit_date: today,
         }));
       }
       setError("");
@@ -159,9 +161,7 @@ export function ReservationModal({
   }, [open, defaultDate, defaultCategory, initialData, today, allReservations]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 숫자만 추출
     let val = e.target.value.replace(/\D/g, "");
-    // 자동 하이픈 추가
     if (val.length > 3 && val.length <= 7) {
       val = val.replace(/(\d{3})(\d{1,4})/, "$1-$2");
     } else if (val.length > 7 && val.length <= 11) {
@@ -172,8 +172,15 @@ export function ReservationModal({
     setForm((f) => ({ ...f, phone: val }));
   };
 
+  const handleRoomToggle = (room: string) => {
+    setCheckedRooms(prev =>
+      prev.includes(room)
+        ? prev.filter(r => r !== room)
+        : [...prev, room]
+    );
+  };
+
   const handleAmountChange = (field: "total_amount" | "extra_amount", value: string) => {
-    // 숫자만 추출 후 천단위 콤마
     const num = value.replace(/,/g, "").replace(/\D/g, "");
     if (!num) {
       setForm((f) => ({ ...f, [field]: "" }));
@@ -217,7 +224,7 @@ export function ReservationModal({
     setSubmitting(true);
     try {
       const phoneToSave = form.phone.replace(/-/g, "");
-      const payload: any = {
+      const basePayload: any = {
         ...form,
         total_amount: totalAmount,
         extra_amount: extraAmount,
@@ -225,24 +232,42 @@ export function ReservationModal({
         cancel_date: form.payment_status === "cancelled" ? form.deposit_date : form.deposit_date,
       };
 
-      // '예약추가' 모드일 경우에는 신규 등록(POST)으로 처리하고 ID를 제외함
-      if (mode === "add") {
-        delete payload.id;
-      }
+      const targetRooms = (mode === "register" || mode === "add") && checkedRooms.length > 0
+        ? Array.from(new Set([form.category, ...checkedRooms]))
+        : [form.category];
 
-      const res = await fetch("/api/admin/reservations", {
-        method: (form.id && mode !== "add") ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error || "저장 실패");
-        return;
+      let lastUseDate = basePayload.use_date;
+
+      for (const room of targetRooms) {
+        const isMainRoom = room === form.category;
+        const payload = {
+          ...basePayload,
+          category: room,
+          total_amount: isMainRoom ? totalAmount : 0,
+          extra_amount: isMainRoom ? extraAmount : 0,
+        };
+
+        if (mode === "add" || !form.id || !isMainRoom) {
+          delete payload.id;
+        }
+
+        const res = await fetch("/api/admin/reservations", {
+          method: (payload.id) ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(`${room}: ${data.error || "저장 실패"}`);
+          setSubmitting(false);
+          return;
+        }
+        if (data?.use_date) lastUseDate = data.use_date;
       }
 
       if (onSaveSuccess) {
-        onSaveSuccess({ use_date: data?.use_date || payload.use_date });
+        onSaveSuccess({ use_date: lastUseDate });
       }
       router.refresh();
       onClose();
@@ -424,6 +449,31 @@ export function ReservationModal({
                 </select>
               </div>
             </div>
+
+            {/* Multiple Room Selection (Checkbox) */}
+            {form.type === "pension" && (
+              <div className="flex flex-col gap-2 bg-zinc-50 dark:bg-zinc-800/40 p-3.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/50">
+                <label className="text-[13px] font-bold text-slate-700 dark:text-zinc-300">
+                  동시 예약 호실 선택 (금액은 주 호실 1개에만 적용됨)
+                </label>
+                <div className="flex items-center gap-6">
+                  {PENSION_ROOMS.map((room) => (
+                    <label key={room} className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        className={`w-4 h-4 rounded border-zinc-300 text-[#DB5461] focus:ring-[#DB5461] cursor-pointer`}
+                        checked={checkedRooms.includes(room) || form.category === room}
+                        disabled={form.category === room}
+                        onChange={() => handleRoomToggle(room)}
+                      />
+                      <span className={`text-[13px] ${form.category === room ? "font-bold text-[#DB5461]" : "text-slate-600 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-zinc-200"}`}>
+                        {room}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Main Content Layout (Left & Right) */}
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 px-1">
