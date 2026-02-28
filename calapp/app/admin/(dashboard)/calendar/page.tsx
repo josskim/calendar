@@ -175,6 +175,7 @@ function CalendarContent() {
     const qName = searchParams.get("name");
     const qPhone = searchParams.get("phone");
     const qRoom = searchParams.get("room");
+    const qAmount = searchParams.get("amount");
 
     if (qDate && qName && qPhone && qRoom) {
       // 데이터가 이미 로드되었거나 최소한 빈 객체라도 생성되었을 때 실행
@@ -197,6 +198,7 @@ function CalendarContent() {
           use_date: qDate,
           source: "naver",
           payment_status: "confirmed",
+          total_amount: qAmount ? parseInt(qAmount, 10) : "",
           type: qRoom.includes("캠프닉") ? "campnic" : "pension"
         });
         // 파라미터 제거 (뒤로가기 시 중복 방지)
@@ -205,6 +207,7 @@ function CalendarContent() {
         params.delete("name");
         params.delete("phone");
         params.delete("room");
+        params.delete("amount");
         router.replace(`/admin/calendar?${params.toString()}`);
       }
     }

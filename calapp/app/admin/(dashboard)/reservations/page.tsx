@@ -131,22 +131,26 @@ function ReservationListPageContent() {
             const headers = allRows[headerIdx];
             const rows = allRows.slice(headerIdx + 1);
 
-            // indices
+            // indices (Support both Naver and Nol)
             const hIdx = {
-                status: headers.indexOf("상태"),
-                name: headers.indexOf("예약자"),
-                phone: headers.indexOf("전화번호"),
-                period: headers.indexOf("이용기간"),
-                room: Math.max(headers.indexOf("상품명"), headers.indexOf("객실"), headers.indexOf("상품/객실명"))
+                status: Math.max(headers.indexOf("상태"), headers.indexOf("예약상태")),
+                name: Math.max(headers.indexOf("예약자"), headers.indexOf("예약자명")),
+                phone: Math.max(headers.indexOf("전화번호"), headers.indexOf("휴대폰번호"), headers.indexOf("휴대폰")),
+                period: Math.max(headers.indexOf("이용기간"), headers.indexOf("체크인"), headers.indexOf("체크인일자"), headers.indexOf("이용일")),
+                room: Math.max(headers.indexOf("상품명"), headers.indexOf("객실"), headers.indexOf("상품/객실명"), headers.indexOf("객실명")),
+                amount: Math.max(headers.indexOf("결제금액"), headers.indexOf("실제결제금액"), headers.indexOf("판매금액"), headers.indexOf("총결제금액"))
             };
 
-            if (hIdx.status === -1 || hIdx.name === -1 || hIdx.period === -1) {
-                alert("필수 컬럼(상태, 예약자, 이용기간)이 정의되지 않았습니다.");
+            if (hIdx.status === -1 || hIdx.name === -1 || (hIdx.period === -1 && headers.indexOf("이용일") === -1)) {
+                alert("필수 컬럼을 정의할 수 없습니다. CSV 헤더를 확인해주세요.");
                 setIsSyncing(false);
                 return;
             }
 
-            const naverConfirmed = rows.filter(row => row[hIdx.status] === "확정");
+            const naverConfirmed = rows.filter(row => {
+                const s = row[hIdx.status] || "";
+                return s === "확정" || s === "예약확정" || s === "이용완료";
+            });
             if (naverConfirmed.length === 0) {
                 setSyncResults({ missing: [], totalChecked: 0 });
                 return;
@@ -169,17 +173,20 @@ function ReservationListPageContent() {
             naverConfirmed.forEach(row => {
                 const nName = (row[hIdx.name] || "").trim();
                 const nPhone = (row[hIdx.phone] || "").replace(/\D/g, "").slice(-4);
+                const nAmount = hIdx.amount !== -1 ? (row[hIdx.amount] || "").replace(/\D/g, "") : "";
 
-                // 3. 날짜 파싱: "26. 3. 18.(수)~..." -> "2026-03-18"
+                // 3. 날짜 파싱
                 const periodStr = row[hIdx.period] || "";
-                const datePart = periodStr.split("~")[0].trim(); // "26. 3. 18.(수)"
-                const match = datePart.match(/(\d+)\.\s*(\d+)\.\s*(\d+)/);
                 let nDate = "";
-                if (match) {
-                    const yy = match[1].padStart(2, '0');
-                    const mm = match[2].padStart(2, '0');
-                    const dd = match[3].padStart(2, '0');
-                    nDate = `20${yy}-${mm}-${dd}`;
+
+                // Naver/Normal format: "26. 3. 18.(수)~..." or "2026-03-18" or "26.03.18"
+                const dateMatch = periodStr.match(/(\d{2,4})[-.]\s*(\d{1,2})[-.]\s*(\d{1,2})/);
+                if (dateMatch) {
+                    let yy = dateMatch[1];
+                    if (yy.length === 2) yy = `20${yy}`;
+                    const mm = dateMatch[2].padStart(2, '0');
+                    const dd = dateMatch[3].padStart(2, '0');
+                    nDate = `${yy}-${mm}-${dd}`;
                 } else {
                     return; // 날짜 파싱 실패 시 무시
                 }
@@ -220,6 +227,7 @@ function ReservationListPageContent() {
                             phone: row[hIdx.phone],
                             date: nDate,
                             room: room,
+                            amount: nAmount,
                             origRoom: nRoomOrig
                         });
                     }
@@ -313,7 +321,8 @@ function ReservationListPageContent() {
                                         <div className="text-[11px] text-slate-500 font-medium">연락처: {res.phone}</div>
                                         <div className="mt-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-700/50 flex justify-end">
                                             <Link
-                                                href={`/admin/calendar?date=${res.date}&name=${encodeURIComponent(res.name)}&phone=${res.phone}&room=${encodeURIComponent(res.room)}`}
+                                                href={`/admin/calendar?date=${res.date}&name=${encodeURIComponent(res.name)}&phone=${res.phone}&room=${encodeURIComponent(res.room)}&amount=${res.amount}`}
+                                                target="_blank"
                                                 className="text-[10px] font-bold text-slate-500 hover:text-[#DB5461] transition-colors"
                                             >
                                                 캘린더에서 등록 →
