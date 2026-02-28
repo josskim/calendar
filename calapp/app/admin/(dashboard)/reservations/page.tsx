@@ -99,8 +99,13 @@ function ReservationListPageContent() {
             const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
             if (lines.length < 2) throw new Error("데이터가 부족합니다.");
 
-            // 1. 헤더 행 찾기 (상단 공지사항 무시)
+            // 1. 헤더 행 찾기 및 구분자 감지
             let headerIdx = -1;
+            let delimiter = ",";
+            const sample = lines.slice(0, 5).join("\n");
+            if (sample.includes("\t")) delimiter = "\t";
+            else if (sample.includes(";") && !sample.includes(",")) delimiter = ";";
+
             const allRows = lines.map(line => {
                 const cols = [];
                 let current = "";
@@ -108,7 +113,7 @@ function ReservationListPageContent() {
                 for (let i = 0; i < line.length; i++) {
                     const char = line[i];
                     if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) { cols.push(current.trim()); current = ""; }
+                    else if (char === delimiter && !inQuotes) { cols.push(current.trim()); current = ""; }
                     else current += char;
                 }
                 cols.push(current.trim());
@@ -116,7 +121,14 @@ function ReservationListPageContent() {
             });
 
             for (let i = 0; i < allRows.length; i++) {
-                if (allRows[i].includes("예약번호") || (allRows[i].includes("상태") && allRows[i].includes("예약자"))) {
+                const row = allRows[i];
+                const rowStr = row.join("|");
+                // 예약번호가 있거나, (예약자/이름 + 상태/체크인) 조합이 있는 행을 헤더로 간주
+                const hasBooking = rowStr.includes("예약번호");
+                const hasName = rowStr.includes("예약자") || rowStr.includes("이름");
+                const hasStatus = rowStr.includes("상태") || rowStr.includes("체크인");
+
+                if (hasBooking || (hasName && hasStatus)) {
                     headerIdx = i;
                     break;
                 }
@@ -131,14 +143,16 @@ function ReservationListPageContent() {
             const headers = allRows[headerIdx];
             const rows = allRows.slice(headerIdx + 1);
 
-            // indices (Support both Naver and Nol)
+            // indices (Support both Naver and Nol with loose matching)
+            const findIdx = (keys: string[]) => headers.findIndex(h => keys.some(k => h.includes(k)));
+
             const hIdx = {
-                status: Math.max(headers.indexOf("상태"), headers.indexOf("예약상태")),
-                name: Math.max(headers.indexOf("예약자"), headers.indexOf("예약자명")),
-                phone: Math.max(headers.indexOf("전화번호"), headers.indexOf("휴대폰번호"), headers.indexOf("휴대폰")),
-                period: Math.max(headers.indexOf("이용기간"), headers.indexOf("체크인"), headers.indexOf("체크인일자"), headers.indexOf("이용일")),
-                room: Math.max(headers.indexOf("상품명"), headers.indexOf("객실"), headers.indexOf("상품/객실명"), headers.indexOf("객실명")),
-                amount: Math.max(headers.indexOf("결제금액"), headers.indexOf("실제결제금액"), headers.indexOf("판매금액"), headers.indexOf("총결제금액"))
+                status: findIdx(["상태", "예약상태"]),
+                name: findIdx(["예약자", "예약자명", "이름"]),
+                phone: findIdx(["전화번호", "휴대폰번호", "휴대폰"]),
+                period: findIdx(["이용기간", "체크인", "체크인일자", "이용일"]),
+                room: findIdx(["상품명", "객실", "상품/객실명", "객실명"]),
+                amount: findIdx(["결제금액", "실제결제금액", "판매금액", "판매금액"])
             };
 
             if (hIdx.status === -1 || hIdx.name === -1 || (hIdx.period === -1 && headers.indexOf("이용일") === -1)) {
@@ -149,7 +163,7 @@ function ReservationListPageContent() {
 
             const naverConfirmed = rows.filter(row => {
                 const s = row[hIdx.status] || "";
-                return s === "확정" || s === "예약확정" || s === "이용완료";
+                return s.includes("확정") || s.includes("이용완료") || s.includes("결제완료");
             });
             if (naverConfirmed.length === 0) {
                 setSyncResults({ missing: [], totalChecked: 0 });
