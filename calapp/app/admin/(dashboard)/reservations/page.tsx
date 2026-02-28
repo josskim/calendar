@@ -300,7 +300,7 @@ function ReservationListPageContent() {
                         <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-[#DB5461] animate-pulse" />
                             <h3 className="text-sm font-black text-slate-800 dark:text-zinc-100">
-                                네이버 예약 대조 결과 (확정 건 {syncResults.totalChecked}개 중)
+                                네이버/야놀자 예약 대조 결과 (확정 건 {syncResults.totalChecked}개 중)
                             </h3>
                         </div>
                         <button onClick={() => setSyncResults(null)} className="text-zinc-400 hover:text-zinc-600 text-sm font-bold">✕ 닫기</button>
@@ -334,7 +334,7 @@ function ReservationListPageContent() {
                         </div>
                     ) : (
                         <p className="text-xs font-bold text-emerald-500 px-1 py-10 text-center">
-                            ✨ 현재 페이지의 모든 네이버 예약이 캘린더에 정상 등록되어 있습니다.
+                            ✨ 현재 페이지의 모든 네이버/야놀자 예약이 캘린더에 정상 등록되어 있습니다.
                         </p>
                     )}
                 </div>
@@ -347,7 +347,7 @@ function ReservationListPageContent() {
                             disabled={isSyncing}
                             className={`flex-shrink-0 px-4 py-2 rounded-lg bg-[#DB5461] text-white font-black text-[11px] hover:bg-[#c44350] transition-colors shadow-sm disabled:opacity-50 h-9`}
                         >
-                            {isSyncing ? "분석 중..." : "네이버 누락 확인"}
+                            {isSyncing ? "분석 중..." : "네이버/야놀자 누락 확인"}
                         </button>
                         <input
                             type="file"
