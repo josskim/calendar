@@ -124,8 +124,8 @@ function ReservationListPageContent() {
                 const row = allRows[i];
                 const rowStr = row.join("|").replace(/\s/g, ""); // 공백 제거 후 비교 (예약 번호 -> 예약번호)
 
-                // 예약번호가 있거나, (예약자/이름 + 상태/체크인/입실) 조합이 있는 행을 헤더로 간주
-                const hasBooking = rowStr.includes("예약번호");
+                // 예약번호가 있거나, 통합예약번호가 있거나, (예약자/이름 + 상태/체크인/입실) 조합이 있는 행을 헤더로 간주
+                const hasBooking = rowStr.includes("예약번호") || rowStr.includes("통합예약번호");
                 const hasName = rowStr.includes("예약자") || rowStr.includes("이름") || rowStr.includes("고객");
                 const hasStatus = rowStr.includes("상태") || rowStr.includes("체크인") || rowStr.includes("입실");
 
@@ -148,7 +148,7 @@ function ReservationListPageContent() {
             const findIdx = (keys: string[]) => headers.findIndex(h => keys.some(k => h.includes(k)));
 
             const hIdx = {
-                status: findIdx(["상태", "예약상태", "구분"]),
+                status: findIdx(["상태", "예약상태", "구분", "통합예약번호"]), // 여기어때는 통합예약번호를 상태 대용으로도 체크
                 name: findIdx(["예약자", "예약자명", "이름", "성함", "고객명"]),
                 phone: findIdx(["전화번호", "휴대폰번호", "휴대폰", "연락처", "핸드폰"]),
                 period: findIdx(["이용기간", "체크인", "체크인일자", "사용일", "이용일", "투숙일", "숙박일", "입실일", "입실 일시"]),
@@ -157,8 +157,8 @@ function ReservationListPageContent() {
                 cancel: findIdx(["취소 일시", "예약취소일시", "예약 취소 일시", "취소날짜", "취소일"])
             };
 
-            if (hIdx.status === -1 || hIdx.name === -1 || hIdx.period === -1) {
-                alert(`필수 정보를 찾을 수 없습니다.\n\n확인된 헤더: ${headers.join(", ")}\n\n(상태, 예약자, 이용일 관련 컬럼이 있는지 확인해주세요.)`);
+            if (hIdx.name === -1 || hIdx.period === -1 || (hIdx.status === -1 && hIdx.phone === -1)) {
+                alert(`필수 정보를 찾을 수 없습니다.\n\n확인된 헤더: ${headers.join(", ")}\n\n(예약자, 이용일, 연락처 관련 컬럼이 있는지 확인해주세요.)`);
                 setIsSyncing(false);
                 return;
             }
@@ -237,11 +237,23 @@ function ReservationListPageContent() {
                         const iName = (item.guest_name || "").trim();
                         const iIsCancelled = item.payment_status === "cancelled";
 
-                        return iDate === nDate &&
-                            iName === nName &&
-                            iPhone === nPhone &&
-                            item.category === room &&
-                            iIsCancelled === isCancelled;
+                        const isDateMatch = iDate === nDate;
+                        const isPhoneMatch = iPhone === nPhone && nPhone !== "";
+                        const isRoomMatch = item.category === room;
+                        const isCancelStatusMatch = iIsCancelled === isCancelled;
+
+                        // 이름 매칭: 여기어때 "맹*혁" 대응 (글자수가 같고 성과 끝자가 같으면 매칭 시도)
+                        let isNameMatch = iName === nName;
+                        if (!isNameMatch && nName.includes("*") && nName.length === iName.length) {
+                            const first = nName[0];
+                            const last = nName[nName.length - 1];
+                            if (iName.startsWith(first) && iName.endsWith(last)) {
+                                isNameMatch = true;
+                            }
+                        }
+
+                        // 전화번호 + 날짜 + 호실이 맞으면 이름이 마스킹되어도 매칭된 것으로 간주
+                        return isDateMatch && isPhoneMatch && isRoomMatch && isCancelStatusMatch && (isNameMatch || nName.includes("*"));
                     });
 
                     if (!found) {
