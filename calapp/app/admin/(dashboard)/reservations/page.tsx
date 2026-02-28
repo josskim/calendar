@@ -151,9 +151,10 @@ function ReservationListPageContent() {
                 status: findIdx(["상태", "예약상태", "구분"]),
                 name: findIdx(["예약자", "예약자명", "이름", "성함", "고객명"]),
                 phone: findIdx(["전화번호", "휴대폰번호", "휴대폰", "연락처", "핸드폰"]),
-                period: findIdx(["이용기간", "체크인", "체크인일자", "사용일", "이용일", "투숙일", "숙박일", "입실일"]),
+                period: findIdx(["이용기간", "체크인", "체크인일자", "사용일", "이용일", "투숙일", "숙박일", "입실일", "입실 일시"]),
                 room: findIdx(["상품명", "객실", "상품/객실명", "객실명", "숙소"]),
-                amount: findIdx(["결제금액", "실제결제금액", "판매금액", "판매가", "총결제금액", "총액"])
+                amount: findIdx(["결제금액", "실제결제금액", "판매금액", "판매가", "판매 금액", "총결제금액", "총액"]),
+                cancel: findIdx(["취소 일시", "예약취소일시", "예약 취소 일시", "취소날짜", "취소일"])
             };
 
             if (hIdx.status === -1 || hIdx.name === -1 || hIdx.period === -1) {
@@ -162,11 +163,13 @@ function ReservationListPageContent() {
                 return;
             }
 
-            const naverConfirmed = rows.filter(row => {
+            const relevantRows = rows.filter(row => {
                 const s = (row[hIdx.status] || "").trim();
-                return s.includes("확정") || s.includes("완료") || (s.includes("대기") === false && s.includes("취소") === false && s !== "");
+                const cancelVal = hIdx.cancel !== -1 ? (row[hIdx.cancel] || "").trim() : "";
+                // 상태에 '취소'가 있거나 취소일시 값이 있으면 포함 (UI에서 표시하기 위함)
+                return s.includes("확정") || s.includes("완료") || s.includes("취소") || cancelVal !== "" || (s.includes("대기") === false && s !== "");
             });
-            if (naverConfirmed.length === 0) {
+            if (relevantRows.length === 0) {
                 setSyncResults({ missing: [], totalChecked: 0 });
                 return;
             }
@@ -185,10 +188,14 @@ function ReservationListPageContent() {
 
             const missing: any[] = [];
 
-            naverConfirmed.forEach(row => {
+            relevantRows.forEach(row => {
                 const nName = (row[hIdx.name] || "").trim();
                 const nPhone = (row[hIdx.phone] || "").replace(/\D/g, "").slice(-4);
                 const nAmount = hIdx.amount !== -1 ? (row[hIdx.amount] || "").replace(/\D/g, "") : "";
+
+                const sStr = (row[hIdx.status] || "").trim();
+                const cStr = hIdx.cancel !== -1 ? (row[hIdx.cancel] || "").trim() : "";
+                const isCancelled = sStr.includes("취소") || (cStr !== "" && cStr !== "-");
 
                 // 3. 날짜 파싱
                 const periodStr = row[hIdx.period] || "";
@@ -228,12 +235,13 @@ function ReservationListPageContent() {
                         const iDate = item.use_date.slice(0, 10);
                         const iPhone = item.phone.replace(/\D/g, "").slice(-4);
                         const iName = (item.guest_name || "").trim();
+                        const iIsCancelled = item.payment_status === "cancelled";
 
                         return iDate === nDate &&
                             iName === nName &&
                             iPhone === nPhone &&
                             item.category === room &&
-                            item.payment_status !== "cancelled";
+                            iIsCancelled === isCancelled;
                     });
 
                     if (!found) {
@@ -243,13 +251,14 @@ function ReservationListPageContent() {
                             date: nDate,
                             room: room,
                             amount: nAmount,
-                            origRoom: nRoomOrig
+                            origRoom: nRoomOrig,
+                            isCancelled: isCancelled
                         });
                     }
                 });
             });
 
-            setSyncResults({ missing, totalChecked: naverConfirmed.length });
+            setSyncResults({ missing, totalChecked: relevantRows.length });
         } catch (err) {
             console.error("Sync error", err);
             alert("파일 분석 중 오류가 발생했습니다.");
@@ -315,7 +324,7 @@ function ReservationListPageContent() {
                         <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-[#DB5461] animate-pulse" />
                             <h3 className="text-sm font-black text-slate-800 dark:text-zinc-100">
-                                네이버/야놀자 예약 대조 결과 (확정 건 {syncResults.totalChecked}개 중)
+                                네이버/야놀자/여기어때 예약 대조 결과 ({syncResults.totalChecked}개 분석 중)
                             </h3>
                         </div>
                         <button onClick={() => setSyncResults(null)} className="text-zinc-400 hover:text-zinc-600 text-sm font-bold">✕ 닫기</button>
@@ -330,7 +339,12 @@ function ReservationListPageContent() {
                                     <div key={i} className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-800 flex flex-col gap-1 ring-1 ring-[#DB5461]/20">
                                         <div className="flex justify-between items-start">
                                             <span className="text-[13px] font-black text-slate-800 dark:text-zinc-100">{res.name}</span>
-                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#DB5461]/10 text-[#DB5461]">{res.room}</span>
+                                            <div className="flex gap-1 items-center">
+                                                {res.isCancelled && (
+                                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">취소</span>
+                                                )}
+                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#DB5461]/10 text-[#DB5461]">{res.room}</span>
+                                            </div>
                                         </div>
                                         <div className="text-[11px] text-slate-500 font-medium">이용일: {res.date}</div>
                                         <div className="text-[11px] text-slate-500 font-medium">연락처: {res.phone}</div>
@@ -362,7 +376,7 @@ function ReservationListPageContent() {
                             disabled={isSyncing}
                             className={`flex-shrink-0 px-4 py-2 rounded-lg bg-[#DB5461] text-white font-black text-[11px] hover:bg-[#c44350] transition-colors shadow-sm disabled:opacity-50 h-9`}
                         >
-                            {isSyncing ? "분석 중..." : "네이버/야놀자 누락 확인"}
+                            {isSyncing ? "분석 중..." : "네이버/야놀자/여기어때 누락 확인"}
                         </button>
                         <input
                             type="file"
