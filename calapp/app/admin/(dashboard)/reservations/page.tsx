@@ -147,23 +147,23 @@ function ReservationListPageContent() {
             const findIdx = (keys: string[]) => headers.findIndex(h => keys.some(k => h.includes(k)));
 
             const hIdx = {
-                status: findIdx(["상태", "예약상태"]),
-                name: findIdx(["예약자", "예약자명", "이름"]),
-                phone: findIdx(["전화번호", "휴대폰번호", "휴대폰"]),
-                period: findIdx(["이용기간", "체크인", "체크인일자", "이용일"]),
-                room: findIdx(["상품명", "객실", "상품/객실명", "객실명"]),
-                amount: findIdx(["결제금액", "실제결제금액", "판매금액", "판매금액"])
+                status: findIdx(["상태", "예약상태", "구분"]),
+                name: findIdx(["예약자", "예약자명", "이름", "성함", "고객명"]),
+                phone: findIdx(["전화번호", "휴대폰번호", "휴대폰", "연락처", "핸드폰"]),
+                period: findIdx(["이용기간", "체크인", "체크인일자", "사용일", "이용일", "투숙일", "숙박일"]),
+                room: findIdx(["상품명", "객실", "상품/객실명", "객실명", "숙소"]),
+                amount: findIdx(["결제금액", "실제결제금액", "판매금액", "총결제금액", "총액"])
             };
 
-            if (hIdx.status === -1 || hIdx.name === -1 || (hIdx.period === -1 && headers.indexOf("이용일") === -1)) {
-                alert("필수 컬럼을 정의할 수 없습니다. CSV 헤더를 확인해주세요.");
+            if (hIdx.status === -1 || hIdx.name === -1 || hIdx.period === -1) {
+                alert(`필수 정보를 찾을 수 없습니다.\n\n확인된 헤더: ${headers.join(", ")}\n\n(상태, 예약자, 이용일 관련 컬럼이 있는지 확인해주세요.)`);
                 setIsSyncing(false);
                 return;
             }
 
             const naverConfirmed = rows.filter(row => {
-                const s = row[hIdx.status] || "";
-                return s.includes("확정") || s.includes("이용완료") || s.includes("결제완료");
+                const s = (row[hIdx.status] || "").trim();
+                return s.includes("확정") || s.includes("이용완료") || s.includes("결제완료") || s.includes("대기") === false && s.includes("취소") === false;
             });
             if (naverConfirmed.length === 0) {
                 setSyncResults({ missing: [], totalChecked: 0 });
