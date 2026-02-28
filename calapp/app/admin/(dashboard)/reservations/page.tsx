@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -42,6 +42,11 @@ function ReservationListPageContent() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
 
+    // Sync States
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [syncResults, setSyncResults] = useState<{ missing: any[], totalChecked: number } | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+
     useEffect(() => {
         async function fetchData() {
             setLoading(true);
@@ -59,6 +64,126 @@ function ReservationListPageContent() {
         }
         fetchData();
     }, [page]);
+
+    const handleSyncClick = () => {
+        if (fileInputRef.current) fileInputRef.current.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsSyncing(true);
+        setSyncResults(null);
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const buffer = event.target?.result as ArrayBuffer;
+            let content;
+            try {
+                // 1. Try UTF-8 (Strict)
+                content = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+            } catch (e) {
+                // 2. If failed, fallback to EUC-KR (ANSI/CP949)
+                content = new TextDecoder("euc-kr").decode(buffer);
+            }
+            processCSV(content);
+        };
+        reader.readAsArrayBuffer(file);
+        // Reset input
+        e.target.value = "";
+    };
+
+    const processCSV = (csvText: string) => {
+        try {
+            const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
+            if (lines.length < 2) throw new Error("데이터가 부족합니다.");
+
+            const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
+            const rows = lines.slice(1).map(line => {
+                const cols = [];
+                let current = "";
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        cols.push(current.trim());
+                        current = "";
+                    } else current += char;
+                }
+                cols.push(current.trim());
+                return cols.map(c => c.replace(/^"|"$/g, "").trim());
+            });
+
+            const hIdx = {
+                status: headers.indexOf("상태"),
+                name: headers.indexOf("예약자"),
+                phone: headers.indexOf("전화번호"),
+                date: headers.indexOf("이용일"),
+                room: headers.indexOf("상품/객실명")
+            };
+
+            if (hIdx.status === -1 || hIdx.name === -1 || hIdx.date === -1) {
+                alert("CSV 헤더가 올바르지 않습니다. (상태, 예약자, 이용일 필수)");
+                setIsSyncing(false);
+                return;
+            }
+
+            const naverConfirmed = rows.filter(row => row[hIdx.status] === "확정");
+            const missing: any[] = [];
+
+            naverConfirmed.forEach(row => {
+                const nName = row[hIdx.name];
+                const nPhone = (row[hIdx.phone] || "").slice(-4);
+                const nDate = row[hIdx.date].slice(0, 10);
+                const nRoomOrig = row[hIdx.room] || "";
+
+                let targetRooms = [];
+                if (nRoomOrig.includes("101호")) targetRooms.push("101호");
+                if (nRoomOrig.includes("201호") || nRoomOrig.includes("202호") || nRoomOrig.includes("독체")) {
+                    if (nRoomOrig.includes("독체") || (nRoomOrig.includes("201호") && nRoomOrig.includes("202호"))) {
+                        targetRooms.push("201호", "202호");
+                    } else if (nRoomOrig.includes("201호")) {
+                        targetRooms.push("201호");
+                    } else if (nRoomOrig.includes("202호")) {
+                        targetRooms.push("202호");
+                    }
+                }
+
+                if (targetRooms.length === 0) return;
+
+                targetRooms.forEach(room => {
+                    const found = data?.items.find(item => {
+                        const iDate = item.use_date.slice(0, 10);
+                        const iPhone = item.phone.slice(-4);
+                        return iDate === nDate &&
+                            item.guest_name === nName &&
+                            iPhone === nPhone &&
+                            item.category === room &&
+                            item.payment_status !== "cancelled";
+                    });
+
+                    if (!found) {
+                        missing.push({
+                            name: nName,
+                            phone: row[hIdx.phone],
+                            date: nDate,
+                            room: room,
+                            origRoom: nRoomOrig
+                        });
+                    }
+                });
+            });
+
+            setSyncResults({ missing, totalChecked: naverConfirmed.length });
+        } catch (err) {
+            console.error("Sync error", err);
+            alert("파일 분석 중 오류가 발생했습니다.");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     const totalPages = data ? Math.ceil(data.total / limit) : 0;
     const searchText = search.trim().toLowerCase();
@@ -94,6 +219,8 @@ function ReservationListPageContent() {
     const formatPhone = (phone: string) => {
         if (phone.length === 11) {
             return phone.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3");
+        } else if (phone.length === 12) {
+            return phone.replace(/(\d{4})(\d{4})(\d{4})/, "$1-$2-$3");
         }
         return phone;
     };
@@ -108,14 +235,73 @@ function ReservationListPageContent() {
 
     return (
         <main className="calendar-viewport p-6 max-w-[1400px] mx-auto w-full">
+            {/* Sync Results Alert */}
+            {syncResults && (
+                <div className="mb-6 p-4 bg-white dark:bg-zinc-900 border-2 border-[#DB5461] rounded-xl shadow-lg animate-in fade-in slide-in-from-top-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#DB5461] animate-pulse" />
+                            <h3 className="text-sm font-black text-slate-800 dark:text-zinc-100">
+                                네이버 예약 대조 결과 (확정 건 {syncResults.totalChecked}개 중)
+                            </h3>
+                        </div>
+                        <button onClick={() => setSyncResults(null)} className="text-zinc-400 hover:text-zinc-600 text-sm font-bold">✕ 닫기</button>
+                    </div>
+                    {syncResults.missing.length > 0 ? (
+                        <div className="space-y-2">
+                            <p className="text-xs font-bold text-[#DB5461] mb-2 px-1">
+                                ⚠️ 현재 페이지 데이터 기준으로 아래 {syncResults.missing.length}건이 캘린더에 없습니다.
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {syncResults.missing.map((res, i) => (
+                                    <div key={i} className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-800 flex flex-col gap-1 ring-1 ring-[#DB5461]/20">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-[13px] font-black text-slate-800 dark:text-zinc-100">{res.name}</span>
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#DB5461]/10 text-[#DB5461]">{res.room}</span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 font-medium">이용일: {res.date}</div>
+                                        <div className="text-[11px] text-slate-500 font-medium">연락처: {res.phone}</div>
+                                        <div className="mt-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-700/50 flex justify-end">
+                                            <Link
+                                                href={`/admin/calendar?date=${res.date}&name=${encodeURIComponent(res.name)}&phone=${res.phone}&room=${encodeURIComponent(res.room)}`}
+                                                className="text-[10px] font-bold text-slate-500 hover:text-[#DB5461] transition-colors"
+                                            >
+                                                캘린더에서 등록 →
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-xs font-bold text-emerald-500 px-1 py-10 text-center">
+                            ✨ 현재 페이지의 모든 네이버 예약이 캘린더에 정상 등록되어 있습니다.
+                        </p>
+                    )}
+                </div>
+            )}
             <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-                <div className="relative px-6 py-5 pr-[360px] border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/95 dark:bg-zinc-900/95 backdrop-blur sticky top-0 z-30">
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 w-[320px]">
+                <div className="relative px-6 py-5 pr-[520px] border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/95 dark:bg-zinc-900/95 backdrop-blur sticky top-0 z-30">
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-3 w-[480px]">
+                        <button
+                            onClick={handleSyncClick}
+                            disabled={isSyncing}
+                            className={`flex-shrink-0 px-4 py-2 rounded-lg bg-[#DB5461] text-white font-black text-[11px] hover:bg-[#c44350] transition-colors shadow-sm disabled:opacity-50 h-9`}
+                        >
+                            {isSyncing ? "분석 중..." : "네이버 누락 확인"}
+                        </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept=".csv"
+                            className="hidden"
+                        />
                         <input
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search reservations..."
+                            placeholder="이름, 번호, 호실 검색..."
                             className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-slate-700 dark:text-zinc-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DB5461]/30 focus:border-[#DB5461]"
                         />
                     </div>

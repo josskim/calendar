@@ -169,6 +169,47 @@ function CalendarContent() {
     fetchReservations();
   }, [year, month]);
 
+  // Sync 연동: URL 파라미터가 있으면 모달 자동 오픈
+  useEffect(() => {
+    const qDate = searchParams.get("date");
+    const qName = searchParams.get("name");
+    const qPhone = searchParams.get("phone");
+    const qRoom = searchParams.get("room");
+
+    if (qDate && qName && qPhone && qRoom) {
+      // 데이터가 이미 로드되었거나 최소한 빈 객체라도 생성되었을 때 실행
+      const targetYear = new Date(qDate).getFullYear();
+      const targetMonth = new Date(qDate).getMonth() + 1;
+
+      // 현재 보고 있는 달이 아니라면 이동 후 대기
+      if (targetYear !== year || targetMonth !== month) {
+        setYear(targetYear);
+        setMonth(targetMonth);
+        return;
+      }
+
+      // 모달이 닫혀있고 데이터 로딩이 끝난 시점에 오픈
+      if (!modalOpen && Object.keys(reservationsByDate).length > 0) {
+        openModal(qDate, qRoom, {
+          guest_name: qName,
+          phone: qPhone,
+          category: qRoom,
+          use_date: qDate,
+          source: "naver",
+          payment_status: "confirmed",
+          type: qRoom.includes("캠프닉") ? "campnic" : "pension"
+        });
+        // 파라미터 제거 (뒤로가기 시 중복 방지)
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("date");
+        params.delete("name");
+        params.delete("phone");
+        params.delete("room");
+        router.replace(`/admin/calendar?${params.toString()}`);
+      }
+    }
+  }, [searchParams, year, month, reservationsByDate, modalOpen]);
+
   useEffect(() => {
     if (!focusedIsoDate) return;
 
@@ -315,115 +356,115 @@ function CalendarContent() {
               ))}
             </div>
             <div className="calendar-grid bg-zinc-100/50 dark:bg-zinc-800/20">
-            {cells.map((cell) => {
-              const list = reservationsByDate[cell.iso] || [];
-              const cancelledCount = list.filter((r) => r.payment_status === "cancelled").length;
-              const hasCancelled = cancelledCount > 0;
-              const isOtherMonth = !cell.isCurrentMonth;
-              return (
-                <div
-                  key={cell.iso + cell.day}
-                  data-cell-iso={cell.iso}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => !isOtherMonth && openModal(cell.iso)}
-                  onKeyDown={(e) => {
-                    if (!isOtherMonth && (e.key === "Enter" || e.key === " ")) {
-                      e.preventDefault();
-                      openModal(cell.iso);
-                    }
-                  }}
-                  className={`calendar-cell ${focusedIsoDate === cell.iso ? "calendar-cell-focused" : ""} ${isOtherMonth ? "bg-white dark:bg-zinc-900 opacity-40" : "cursor-pointer"} ${cell.isToday
-                    ? "bg-[#DB5461]/5 dark:bg-[#DB5461]/10 border-2 border-[#DB5461]/50"
-                    : ([0, 5, 6].includes(cell.date.getDay())
-                      ? "bg-[#DB5461]/10"
-                      : "bg-white dark:bg-zinc-900")
-                    }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-1">
-                      <span
-                        className={`text-sm font-bold ${cell.isToday ? "font-black text-[#DB5461]" : ""
-                          } ${isOtherMonth
-                            ? "text-slate-400"
-                            : (cell.date.getDay() === 0
-                              ? "text-red-600"
-                              : cell.date.getDay() === 6
-                                ? "text-blue-600"
-                                : "text-slate-700 dark:text-zinc-300")
-                          }`}
-                      >
-                        {cell.day}
-                      </span>
-                      {hasCancelled && (
-                        <span className="inline-flex items-center rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold dark:bg-amber-900/30 dark:text-amber-300">
-                          예약취소{cancelledCount}건
+              {cells.map((cell) => {
+                const list = reservationsByDate[cell.iso] || [];
+                const cancelledCount = list.filter((r) => r.payment_status === "cancelled").length;
+                const hasCancelled = cancelledCount > 0;
+                const isOtherMonth = !cell.isCurrentMonth;
+                return (
+                  <div
+                    key={cell.iso + cell.day}
+                    data-cell-iso={cell.iso}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => !isOtherMonth && openModal(cell.iso)}
+                    onKeyDown={(e) => {
+                      if (!isOtherMonth && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        openModal(cell.iso);
+                      }
+                    }}
+                    className={`calendar-cell ${focusedIsoDate === cell.iso ? "calendar-cell-focused" : ""} ${isOtherMonth ? "bg-white dark:bg-zinc-900 opacity-40" : "cursor-pointer"} ${cell.isToday
+                      ? "bg-[#DB5461]/5 dark:bg-[#DB5461]/10 border-2 border-[#DB5461]/50"
+                      : ([0, 5, 6].includes(cell.date.getDay())
+                        ? "bg-[#DB5461]/10"
+                        : "bg-white dark:bg-zinc-900")
+                      }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`text-sm font-bold ${cell.isToday ? "font-black text-[#DB5461]" : ""
+                            } ${isOtherMonth
+                              ? "text-slate-400"
+                              : (cell.date.getDay() === 0
+                                ? "text-red-600"
+                                : cell.date.getDay() === 6
+                                  ? "text-blue-600"
+                                  : "text-slate-700 dark:text-zinc-300")
+                            }`}
+                        >
+                          {cell.day}
+                        </span>
+                        {hasCancelled && (
+                          <span className="inline-flex items-center rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold dark:bg-amber-900/30 dark:text-amber-300">
+                            예약취소{cancelledCount}건
+                          </span>
+                        )}
+                      </div>
+                      {cell.isToday && (
+                        <span className="bg-[#DB5461] text-white text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tight">
+                          Today
                         </span>
                       )}
                     </div>
-                    {cell.isToday && (
-                      <span className="bg-[#DB5461] text-white text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tight">
-                        Today
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    {FIXED_SLOTS.map((slot) => {
-                      const cellReservations = list.filter((r) => r.category === slot.label && r.payment_status !== "cancelled");
-                      const isCampnic = slot.label.includes("캠프닉");
-                      const count = cellReservations.length;
+                    <div className="flex flex-col gap-1.5">
+                      {FIXED_SLOTS.map((slot) => {
+                        const cellReservations = list.filter((r) => r.category === slot.label && r.payment_status !== "cancelled");
+                        const isCampnic = slot.label.includes("캠프닉");
+                        const count = cellReservations.length;
 
-                      let reservation = cellReservations[0];
+                        let reservation = cellReservations[0];
 
-                      // 개별 호실 표시 로직 (이미 예약된 호실 컬러를 유지하기 위함)
-                      if (!reservation && (slot.label === "201호" || slot.label === "202호")) {
-                        reservation = list.find((r) => r.category === "201호+202호" && r.payment_status !== "cancelled");
-                      }
-
-                      const isCompleted = isCampnic ? count >= 6 : !!reservation;
-                      let btnClass = isCompleted ? "res-btn-primary" : "res-btn-secondary";
-                      if (isCampnic) {
-                        if (count >= 6) {
-                          btnClass = "res-btn-progress"; // 마감도 캠프닉 블루계열
-                        } else if (count > 0) {
-                          btnClass = "res-btn-progress"; // 예약 있음 캠프닉 블루계열
+                        // 개별 호실 표시 로직 (이미 예약된 호실 컬러를 유지하기 위함)
+                        if (!reservation && (slot.label === "201호" || slot.label === "202호")) {
+                          reservation = list.find((r) => r.category === "201호+202호" && r.payment_status !== "cancelled");
                         }
-                      }
 
-                      return (
-                        <button
-                          key={slot.label}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openModal(cell.iso, slot.label, reservation);
-                          }}
-                          className={`${btnClass} w-full flex items-center px-1.5 py-0.5 min-h-[20px] overflow-hidden gap-1`}
-                          title={isCompleted ? (isCampnic ? "예약 마감" : "예약 완료") : undefined}
-                        >
-                          <span className="truncate shrink-0 text-[10px] sm:text-[11px] font-black text-left">{slot.label}</span>
+                        const isCompleted = isCampnic ? count >= 6 : !!reservation;
+                        let btnClass = isCompleted ? "res-btn-primary" : "res-btn-secondary";
+                        if (isCampnic) {
+                          if (count >= 6) {
+                            btnClass = "res-btn-progress"; // 마감도 캠프닉 블루계열
+                          } else if (count > 0) {
+                            btnClass = "res-btn-progress"; // 예약 있음 캠프닉 블루계열
+                          }
+                        }
 
-                          {isCampnic ? (
-                            <span className={`text-[9px] ml-auto shrink-0 tabular-nums ${count >= 6 || count > 0 ? "text-white/90" : "text-slate-400"}`}>
-                              ({count}/6)
-                            </span>
-                          ) : (
-                            reservation && (
-                              <div className="flex items-center gap-1 text-[9px] opacity-90 truncate flex-1 justify-end min-w-0">
-                                <span className="truncate font-medium">
-                                  {reservation.guest_name}({reservation.people_count})
-                                </span>
-                                <SourceIcon source={reservation.source} />
-                              </div>
-                            )
-                          )}
-                        </button>
-                      );
-                    })}
+                        return (
+                          <button
+                            key={slot.label}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openModal(cell.iso, slot.label, reservation);
+                            }}
+                            className={`${btnClass} w-full flex items-center px-1.5 py-0.5 min-h-[20px] overflow-hidden gap-1`}
+                            title={isCompleted ? (isCampnic ? "예약 마감" : "예약 완료") : undefined}
+                          >
+                            <span className="truncate shrink-0 text-[10px] sm:text-[11px] font-black text-left">{slot.label}</span>
+
+                            {isCampnic ? (
+                              <span className={`text-[9px] ml-auto shrink-0 tabular-nums ${count >= 6 || count > 0 ? "text-white/90" : "text-slate-400"}`}>
+                                ({count}/6)
+                              </span>
+                            ) : (
+                              reservation && (
+                                <div className="flex items-center gap-1 text-[9px] opacity-90 truncate flex-1 justify-end min-w-0">
+                                  <span className="truncate font-medium">
+                                    {reservation.guest_name}({reservation.people_count})
+                                  </span>
+                                  <SourceIcon source={reservation.source} />
+                                </div>
+                              )
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
             </div>
           </div>
         </div>
