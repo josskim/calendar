@@ -50,7 +50,9 @@ export function ReservationModal({
       const useDate = data.use_date?.slice(0, 10) || today;
       const depositDate = data.deposit_date?.slice(0, 10) || today;
       let phone = data.phone || "";
-      if (phone.length === 11) {
+      if (phone.length === 12) {
+        phone = phone.replace(/(\d{4})(\d{4})(\d{4})/, "$1-$2-$3");
+      } else if (phone.length === 11) {
         phone = phone.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3");
       } else if (phone.length === 10) {
         phone = phone.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3");
@@ -162,8 +164,10 @@ export function ReservationModal({
     // 자동 하이픈 추가
     if (val.length > 3 && val.length <= 7) {
       val = val.replace(/(\d{3})(\d{1,4})/, "$1-$2");
-    } else if (val.length > 7) {
+    } else if (val.length > 7 && val.length <= 11) {
       val = val.replace(/(\d{3})(\d{3,4})(\d{1,4})/, "$1-$2-$3");
+    } else if (val.length > 11) {
+      val = val.replace(/(\d{4})(\d{4})(\d{1,4})/, "$1-$2-$3");
     }
     setForm((f) => ({ ...f, phone: val }));
   };
@@ -530,7 +534,7 @@ export function ReservationModal({
                     value={form.phone}
                     onChange={handlePhoneChange}
                     placeholder="010-0000-0000"
-                    maxLength={13}
+                    maxLength={15}
                   />
                 </div>
 
