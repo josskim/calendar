@@ -99,33 +99,49 @@ function ReservationListPageContent() {
             const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
             if (lines.length < 2) throw new Error("데이터가 부족합니다.");
 
-            const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
-            const rows = lines.slice(1).map(line => {
+            // 1. 헤더 행 찾기 (상단 공지사항 무시)
+            let headerIdx = -1;
+            const allRows = lines.map(line => {
                 const cols = [];
                 let current = "";
                 let inQuotes = false;
                 for (let i = 0; i < line.length; i++) {
                     const char = line[i];
                     if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) {
-                        cols.push(current.trim());
-                        current = "";
-                    } else current += char;
+                    else if (char === ',' && !inQuotes) { cols.push(current.trim()); current = ""; }
+                    else current += char;
                 }
                 cols.push(current.trim());
                 return cols.map(c => c.replace(/^"|"$/g, "").trim());
             });
 
+            for (let i = 0; i < allRows.length; i++) {
+                if (allRows[i].includes("예약번호") || (allRows[i].includes("상태") && allRows[i].includes("예약자"))) {
+                    headerIdx = i;
+                    break;
+                }
+            }
+
+            if (headerIdx === -1) {
+                alert("CSV 헤더를 찾을 수 없습니다. (예약번호, 상태, 예약자 컬럼 확인)");
+                setIsSyncing(false);
+                return;
+            }
+
+            const headers = allRows[headerIdx];
+            const rows = allRows.slice(headerIdx + 1);
+
+            // indices
             const hIdx = {
                 status: headers.indexOf("상태"),
                 name: headers.indexOf("예약자"),
                 phone: headers.indexOf("전화번호"),
-                date: headers.indexOf("이용일"),
-                room: headers.indexOf("상품/객실명")
+                period: headers.indexOf("이용기간"),
+                room: Math.max(headers.indexOf("상품명"), headers.indexOf("객실"), headers.indexOf("상품/객실명"))
             };
 
-            if (hIdx.status === -1 || hIdx.name === -1 || hIdx.date === -1) {
-                alert("CSV 헤더가 올바르지 않습니다. (상태, 예약자, 이용일 필수)");
+            if (hIdx.status === -1 || hIdx.name === -1 || hIdx.period === -1) {
+                alert("필수 컬럼(상태, 예약자, 이용기간)이 정의되지 않았습니다.");
                 setIsSyncing(false);
                 return;
             }
@@ -135,10 +151,25 @@ function ReservationListPageContent() {
 
             naverConfirmed.forEach(row => {
                 const nName = row[hIdx.name];
-                const nPhone = (row[hIdx.phone] || "").slice(-4);
-                const nDate = row[hIdx.date].slice(0, 10);
+                const nPhone = (row[hIdx.phone] || "").replace(/\D/g, "").slice(-4);
+
+                // 2. 날짜 파싱: "26. 3. 18.(수)~..." -> "2026-03-18"
+                const periodStr = row[hIdx.period] || "";
+                const datePart = periodStr.split("~")[0].trim(); // "26. 3. 18.(수)"
+                const match = datePart.match(/(\d+)\.\s*(\d+)\.\s*(\d+)/);
+                let nDate = "";
+                if (match) {
+                    const yy = match[1].padStart(2, '0');
+                    const mm = match[2].padStart(2, '0');
+                    const dd = match[3].padStart(2, '0');
+                    nDate = `20${yy}-${mm}-${dd}`;
+                } else {
+                    return; // 날짜 파싱 실패 시 무시
+                }
+
                 const nRoomOrig = row[hIdx.room] || "";
 
+                // Determine target rooms
                 let targetRooms = [];
                 if (nRoomOrig.includes("101호")) targetRooms.push("101호");
                 if (nRoomOrig.includes("201호") || nRoomOrig.includes("202호") || nRoomOrig.includes("독체")) {
