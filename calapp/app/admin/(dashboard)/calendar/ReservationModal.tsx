@@ -207,11 +207,15 @@ export function ReservationModal({
     const extraAmount = form.extra_amount ? parseInt(form.extra_amount.replace(/,/g, ""), 10) : 0;
     const finalAmount = totalAmount + extraAmount;
 
+    const targetRooms = (mode === "register" || mode === "add") && checkedRooms.length > 0
+      ? Array.from(new Set([form.category, ...checkedRooms]))
+      : [form.category];
+
     if (mode === "register") {
       const confirmMessage =
         `아래 내용으로 저장할까요?\n\n` +
         `이용일: ${form.use_date}\n` +
-        `호실: ${form.category}\n` +
+        `호실: ${targetRooms.join(", ")}\n` +
         `인원: ${form.people_count}명\n` +
         `금액: ${finalAmount.toLocaleString()}원`;
 
@@ -232,10 +236,6 @@ export function ReservationModal({
         cancel_date: form.payment_status === "cancelled" ? form.deposit_date : form.deposit_date,
       };
 
-      const targetRooms = (mode === "register" || mode === "add") && checkedRooms.length > 0
-        ? Array.from(new Set([form.category, ...checkedRooms]))
-        : [form.category];
-
       let lastUseDate = basePayload.use_date;
 
       for (const room of targetRooms) {
@@ -247,8 +247,26 @@ export function ReservationModal({
           extra_amount: isMainRoom ? extraAmount : 0,
         };
 
-        if (mode === "add" || !form.id || !isMainRoom) {
+        // 주 호실이 아닌 경우, 같은 날짜/같은 사람의 기존 예약이 있는지 확인
+        let targetId = isMainRoom ? form.id : null;
+        if (!isMainRoom) {
+          const existingRes = allReservations.find(r =>
+            r.category === room &&
+            r.use_date.slice(0, 10) === form.use_date &&
+            r.guest_name === form.guest_name &&
+            r.payment_status !== "cancelled"
+          ) || allReservations.find(r =>
+            r.category === room &&
+            r.use_date.slice(0, 10) === form.use_date &&
+            r.guest_name === form.guest_name
+          );
+          if (existingRes) targetId = existingRes.id;
+        }
+
+        if (mode === "add" || !targetId) {
           delete payload.id;
+        } else {
+          payload.id = targetId;
         }
 
         const res = await fetch("/api/admin/reservations", {
