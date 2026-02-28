@@ -21,16 +21,27 @@ type YearlyData = {
     extra: number;
 };
 
+type UnsettledData = {
+    naver: number;
+    nol: number;
+    here: number;
+    airbnb: number;
+    phone: number;
+    other: number;
+    total: number;
+};
+
 type SalesResponse = {
     year: number;
     yearly: YearlyData;
     months: MonthData[];
+    unsettled: UnsettledData;
 };
 
 const MONTH_LABELS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
 
 function fmt(n: number) {
-    return n.toLocaleString();
+    return (n || 0).toLocaleString();
 }
 
 function SalesPageContent() {
@@ -105,7 +116,7 @@ function SalesPageContent() {
             </div>
 
             {/* 요약 통계 카드 */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
                     <div className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">총 매출</div>
                     <div className="text-2xl font-black text-slate-800 dark:text-zinc-100">
@@ -133,6 +144,40 @@ function SalesPageContent() {
                         {loading ? "—" : `${fmt(yearly?.count ?? 0)}`}
                     </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">건</div>
+                </div>
+            </div>
+
+            {/* 미정산 금액 (오늘 이후) */}
+            <div className="mb-8">
+                <div className="flex items-center gap-2 mb-3 px-1">
+                    <span className="w-1.5 h-4 bg-[#DB5461] rounded-full" />
+                    <h3 className="text-sm font-black text-slate-700 dark:text-zinc-300">플랫폼별 정산 예정액 (오늘 이후 예약 전체)</h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 shadow-sm border-l-4 border-l-emerald-500">
+                        <div className="text-[10px] font-bold text-emerald-500/80 mb-1">네이버</div>
+                        <div className="text-sm font-black text-slate-800 dark:text-zinc-100">{loading ? "—" : fmt(data?.unsettled?.naver ?? 0)}</div>
+                    </div>
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 shadow-sm border-l-4 border-l-rose-500">
+                        <div className="text-[10px] font-bold text-rose-500/80 mb-1">야놀자</div>
+                        <div className="text-sm font-black text-slate-800 dark:text-zinc-100">{loading ? "—" : fmt(data?.unsettled?.nol ?? 0)}</div>
+                    </div>
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 shadow-sm border-l-4 border-l-rose-600">
+                        <div className="text-[10px] font-bold text-rose-600/80 mb-1">여기어때</div>
+                        <div className="text-sm font-black text-slate-800 dark:text-zinc-100">{loading ? "—" : fmt(data?.unsettled?.here ?? 0)}</div>
+                    </div>
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 shadow-sm border-l-4 border-l-rose-400">
+                        <div className="text-[10px] font-bold text-rose-400/80 mb-1">에어비앤비</div>
+                        <div className="text-sm font-black text-slate-800 dark:text-zinc-100">{loading ? "—" : fmt(data?.unsettled?.airbnb ?? 0)}</div>
+                    </div>
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 shadow-sm border-l-4 border-l-slate-400">
+                        <div className="text-[10px] font-bold text-slate-400 mb-1">전화/기타</div>
+                        <div className="text-sm font-black text-slate-800 dark:text-zinc-100">{loading ? "—" : fmt((data?.unsettled?.phone ?? 0) + (data?.unsettled?.other ?? 0))}</div>
+                    </div>
+                    <div className="bg-zinc-800 dark:bg-zinc-800 rounded-xl border border-zinc-700 p-3 shadow-md border-l-4 border-l-[#DB5461]">
+                        <div className="text-[10px] font-bold text-zinc-400 mb-1">총 예정액</div>
+                        <div className="text-sm font-black text-white">{loading ? "—" : fmt(data?.unsettled?.total ?? 0)}</div>
+                    </div>
                 </div>
             </div>
 

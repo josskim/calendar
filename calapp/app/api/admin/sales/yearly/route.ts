@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
                     gte: new Date(`${year}-01-01T00:00:00.000Z`),
                     lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
                 },
-                payment_status: { not: "cancelled" },
+                payment_status: { notIn: ["cancelled", "취소"] },
             },
             select: {
                 id: true,
@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
                 total_amount: true,
                 extra_amount: true,
                 payment_status: true,
+                source: true,
             },
         });
 
@@ -77,7 +78,44 @@ export async function GET(req: NextRequest) {
             extra: validReservations.reduce((s: number, r) => s + (r.extra_amount ?? 0), 0),
         };
 
-        return NextResponse.json({ year, yearly, months });
+        // 미정산 금액 (오늘 이후 전체 데이터)
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const unsettledRes = await prisma.reservation.findMany({
+            where: {
+                use_date: { gte: now },
+                payment_status: { notIn: ["cancelled", "취소"] }
+            },
+            select: {
+                source: true,
+                total_amount: true,
+                extra_amount: true
+            }
+        });
+
+        const unsettled = {
+            naver: 0,
+            nol: 0,
+            here: 0,
+            airbnb: 0,
+            phone: 0,
+            other: 0,
+            total: 0
+        };
+
+        unsettledRes.forEach(r => {
+            const amt = (r.total_amount ?? 0) + (r.extra_amount ?? 0);
+            const s = (r.source || "other").toLowerCase();
+            if (s.includes("naver")) unsettled.naver += amt;
+            else if (s.includes("nol") || s.includes("yanolja")) unsettled.nol += amt;
+            else if (s.includes("here") || s.includes("yeogieottae")) unsettled.here += amt;
+            else if (s.includes("airbnb")) unsettled.airbnb += amt;
+            else if (s.includes("phone")) unsettled.phone += amt;
+            else unsettled.other += amt;
+            unsettled.total += amt;
+        });
+
+        return NextResponse.json({ year, yearly, months, unsettled });
     } catch (e) {
         console.error("Sales API error", e);
         return NextResponse.json({ error: "Failed to fetch sales data" }, { status: 500 });
