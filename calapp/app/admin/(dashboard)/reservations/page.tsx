@@ -94,7 +94,7 @@ function ReservationListPageContent() {
         e.target.value = "";
     };
 
-    const processCSV = (csvText: string) => {
+    const processCSV = async (csvText: string) => {
         try {
             const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
             if (lines.length < 2) throw new Error("데이터가 부족합니다.");
@@ -147,13 +147,30 @@ function ReservationListPageContent() {
             }
 
             const naverConfirmed = rows.filter(row => row[hIdx.status] === "확정");
+            if (naverConfirmed.length === 0) {
+                setSyncResults({ missing: [], totalChecked: 0 });
+                return;
+            }
+
+            // 2. 대조를 위해 전체 예약 데이터 (필요한 만큼) 가져오기
+            // 현재 페이지만으로는 부족하므로, 충분히 큰 limit으로 다시 요청하거나 전용 API가 필요함.
+            // 여기서는 기존 API를 활용해 5000건 정도를 가져와 대조용으로 사용 (일반적인 펜션 규모 커버)
+            const lookupRes = await fetch(`/api/admin/reservations/list?page=1&limit=5000`);
+            let allItems: ReservationItem[] = [];
+            if (lookupRes.ok) {
+                const lookupData = await lookupRes.json();
+                allItems = lookupData.items || [];
+            } else {
+                allItems = data?.items || []; // 실패 시 현재 페이지만이라도 사용
+            }
+
             const missing: any[] = [];
 
             naverConfirmed.forEach(row => {
-                const nName = row[hIdx.name];
+                const nName = (row[hIdx.name] || "").trim();
                 const nPhone = (row[hIdx.phone] || "").replace(/\D/g, "").slice(-4);
 
-                // 2. 날짜 파싱: "26. 3. 18.(수)~..." -> "2026-03-18"
+                // 3. 날짜 파싱: "26. 3. 18.(수)~..." -> "2026-03-18"
                 const periodStr = row[hIdx.period] || "";
                 const datePart = periodStr.split("~")[0].trim(); // "26. 3. 18.(수)"
                 const match = datePart.match(/(\d+)\.\s*(\d+)\.\s*(\d+)/);
@@ -185,11 +202,13 @@ function ReservationListPageContent() {
                 if (targetRooms.length === 0) return;
 
                 targetRooms.forEach(room => {
-                    const found = data?.items.find(item => {
+                    const found = allItems.find(item => {
                         const iDate = item.use_date.slice(0, 10);
-                        const iPhone = item.phone.slice(-4);
+                        const iPhone = item.phone.replace(/\D/g, "").slice(-4);
+                        const iName = (item.guest_name || "").trim();
+
                         return iDate === nDate &&
-                            item.guest_name === nName &&
+                            iName === nName &&
                             iPhone === nPhone &&
                             item.category === room &&
                             item.payment_status !== "cancelled";
