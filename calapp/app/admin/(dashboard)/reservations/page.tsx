@@ -122,11 +122,12 @@ function ReservationListPageContent() {
 
             for (let i = 0; i < allRows.length; i++) {
                 const row = allRows[i];
-                const rowStr = row.join("|");
-                // 예약번호가 있거나, (예약자/이름 + 상태/체크인) 조합이 있는 행을 헤더로 간주
+                const rowStr = row.join("|").replace(/\s/g, ""); // 공백 제거 후 비교 (예약 번호 -> 예약번호)
+
+                // 예약번호가 있거나, (예약자/이름 + 상태/체크인/입실) 조합이 있는 행을 헤더로 간주
                 const hasBooking = rowStr.includes("예약번호");
-                const hasName = rowStr.includes("예약자") || rowStr.includes("이름");
-                const hasStatus = rowStr.includes("상태") || rowStr.includes("체크인");
+                const hasName = rowStr.includes("예약자") || rowStr.includes("이름") || rowStr.includes("고객");
+                const hasStatus = rowStr.includes("상태") || rowStr.includes("체크인") || rowStr.includes("입실");
 
                 if (hasBooking || (hasName && hasStatus)) {
                     headerIdx = i;
@@ -150,9 +151,9 @@ function ReservationListPageContent() {
                 status: findIdx(["상태", "예약상태", "구분"]),
                 name: findIdx(["예약자", "예약자명", "이름", "성함", "고객명"]),
                 phone: findIdx(["전화번호", "휴대폰번호", "휴대폰", "연락처", "핸드폰"]),
-                period: findIdx(["이용기간", "체크인", "체크인일자", "사용일", "이용일", "투숙일", "숙박일"]),
+                period: findIdx(["이용기간", "체크인", "체크인일자", "사용일", "이용일", "투숙일", "숙박일", "입실일"]),
                 room: findIdx(["상품명", "객실", "상품/객실명", "객실명", "숙소"]),
-                amount: findIdx(["결제금액", "실제결제금액", "판매금액", "총결제금액", "총액"])
+                amount: findIdx(["결제금액", "실제결제금액", "판매금액", "판매가", "총결제금액", "총액"])
             };
 
             if (hIdx.status === -1 || hIdx.name === -1 || hIdx.period === -1) {
@@ -163,7 +164,7 @@ function ReservationListPageContent() {
 
             const naverConfirmed = rows.filter(row => {
                 const s = (row[hIdx.status] || "").trim();
-                return s.includes("확정") || s.includes("이용완료") || s.includes("결제완료") || s.includes("대기") === false && s.includes("취소") === false;
+                return s.includes("확정") || s.includes("완료") || (s.includes("대기") === false && s.includes("취소") === false && s !== "");
             });
             if (naverConfirmed.length === 0) {
                 setSyncResults({ missing: [], totalChecked: 0 });
