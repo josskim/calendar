@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
                 extra_amount: true,
                 payment_status: true,
                 source: true,
+                user_type: true,
             },
         });
 
@@ -38,10 +39,11 @@ export async function GET(req: NextRequest) {
             pension: number;
             campnic: number;
             extra: number;
+            yasugyo: number;
         }> = {};
 
         for (let m = 1; m <= 12; m++) {
-            monthlyData[m] = { count: 0, total: 0, pension: 0, campnic: 0, extra: 0 };
+            monthlyData[m] = { count: 0, total: 0, pension: 0, campnic: 0, extra: 0, yasugyo: 0 };
         }
 
         for (const r of validReservations) {
@@ -50,16 +52,23 @@ export async function GET(req: NextRequest) {
             const month = date.getUTCMonth() + 1;
             if (month < 1 || month > 12) continue;
 
-            monthlyData[month].count += 1;
             const ta = r.total_amount ?? 0;
             const ea = r.extra_amount ?? 0;
-            monthlyData[month].total += ta + ea;
+            const rowTotal = ta + ea;
+
+            monthlyData[month].count += 1;
+            monthlyData[month].total += rowTotal;
             monthlyData[month].extra += ea;
 
             if (r.type === "campnic") {
-                monthlyData[month].campnic += ta + ea;
+                monthlyData[month].campnic += rowTotal;
             } else {
-                monthlyData[month].pension += ta + ea;
+                monthlyData[month].pension += rowTotal;
+            }
+
+            // 야수교 매출 합계 (펜션 + 캠프닉 포함)
+            if (r.user_type === "야수교") {
+                monthlyData[month].yasugyo += rowTotal;
             }
         }
 
@@ -76,6 +85,7 @@ export async function GET(req: NextRequest) {
             pension: validReservations.filter(r => r.type !== "campnic").reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
             campnic: validReservations.filter(r => r.type === "campnic").reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
             extra: validReservations.reduce((s: number, r) => s + (r.extra_amount ?? 0), 0),
+            yasugyo: validReservations.filter(r => r.user_type === "야수교").reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
         };
 
         // 미정산 금액 (오늘 이후 전체 데이터)

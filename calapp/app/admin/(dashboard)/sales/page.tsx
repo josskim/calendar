@@ -11,6 +11,7 @@ type MonthData = {
     pension: number;
     campnic: number;
     extra: number;
+    yasugyo: number;
 };
 
 type YearlyData = {
@@ -19,6 +20,7 @@ type YearlyData = {
     pension: number;
     campnic: number;
     extra: number;
+    yasugyo: number;
 };
 
 type UnsettledData = {
@@ -253,12 +255,13 @@ function SalesPageContent() {
                                 <th className="px-5 py-3 text-right">팬션매출</th>
                                 <th className="px-5 py-3 text-right">캠프닉매출</th>
                                 <th className="px-5 py-3 text-right">총추가금액</th>
+                                <th className="px-5 py-3 text-right text-[#DB5461]">야수교매출</th>
                             </tr>
                         </thead>
                         <tbody className="text-[13px]">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-16 text-center text-slate-400">로딩 중...</td>
+                                    <td colSpan={7} className="px-5 py-16 text-center text-slate-400">로딩 중...</td>
                                 </tr>
                             ) : MONTH_LABELS.map((label, i) => {
                                 const m = months.find(x => x.month === i + 1);
@@ -293,6 +296,9 @@ function SalesPageContent() {
                                         <td className="px-5 py-3.5 text-right font-mono text-slate-400 dark:text-zinc-500">
                                             {(m?.extra ?? 0) > 0 ? fmt(m?.extra ?? 0) : <span className="text-slate-300 dark:text-zinc-600 text-xs">—</span>}
                                         </td>
+                                        <td className="px-5 py-3.5 text-right font-mono font-bold text-[#DB5461]">
+                                            {(m?.yasugyo ?? 0) > 0 ? fmt(m?.yasugyo ?? 0) : <span className="text-slate-300 dark:text-zinc-600 text-xs">—</span>}
+                                        </td>
                                     </tr>
                                 );
                             })}
@@ -307,6 +313,7 @@ function SalesPageContent() {
                                     <td className="px-5 py-4 text-right font-mono text-rose-300">{fmt(yearly.pension)}</td>
                                     <td className="px-5 py-4 text-right font-mono text-indigo-300">{fmt(yearly.campnic)}</td>
                                     <td className="px-5 py-4 text-right font-mono text-slate-300">{fmt(yearly.extra)}</td>
+                                    <td className="px-5 py-4 text-right font-mono text-red-200">{fmt(yearly.yasugyo)}</td>
                                 </tr>
                             </tfoot>
                         )}
