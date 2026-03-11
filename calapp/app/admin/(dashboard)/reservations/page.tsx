@@ -40,7 +40,8 @@ function ReservationListPageContent() {
 
     const [data, setData] = useState<ListResponse | null>(null);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
+    const search = searchParams.get("search") || "";
+    const [searchInput, setSearchInput] = useState(search);
 
     // Sync States
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +52,8 @@ function ReservationListPageContent() {
         async function fetchData() {
             setLoading(true);
             try {
-                const res = await fetch(`/api/admin/reservations/list?page=${page}&limit=${limit}`);
+                const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
+                const res = await fetch(`/api/admin/reservations/list?page=${page}&limit=${limit}${searchParam}`);
                 if (res.ok) {
                     const result = await res.json();
                     setData(result);
@@ -63,7 +65,7 @@ function ReservationListPageContent() {
             }
         }
         fetchData();
-    }, [page]);
+    }, [page, search]);
 
     const handleSyncClick = () => {
         if (fileInputRef.current) fileInputRef.current.click();
@@ -280,35 +282,7 @@ function ReservationListPageContent() {
     };
 
     const totalPages = data ? Math.ceil(data.total / limit) : 0;
-    const searchText = search.trim().toLowerCase();
-    const filteredItems = (data?.items || []).filter((item) => {
-        if (!searchText) return true;
-        const sourceLabel =
-            item.source === "naver"
-                ? "naver"
-                : item.source === "phone"
-                    ? "phone"
-                    : item.source === "nol"
-                        ? "nol"
-                        : item.source === "here"
-                            ? "here"
-                            : "other";
-        const haystack = [
-            item.id,
-            item.guest_name,
-            item.phone,
-            item.category,
-            item.type,
-            item.user_type,
-            item.memo || "",
-            sourceLabel,
-            item.payment_status,
-            item.use_date.slice(0, 10),
-        ]
-            .join(" ")
-            .toLowerCase();
-        return haystack.includes(searchText);
-    });
+    const items = data?.items || [];
 
     const formatPhone = (phone: string) => {
         if (phone.length === 11) {
@@ -324,7 +298,18 @@ function ReservationListPageContent() {
     };
 
     const handlePageChange = (p: number) => {
-        router.push(`/admin/reservations?page=${p}`);
+        const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
+        router.push(`/admin/reservations?page=${p}${searchParam}`);
+    };
+
+    const handleSearch = () => {
+        router.push(`/admin/reservations?page=1&search=${encodeURIComponent(searchInput)}`);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            handleSearch();
+        }
     };
 
     return (
@@ -397,13 +382,22 @@ function ReservationListPageContent() {
                             accept=".csv"
                             className="hidden"
                         />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="이름, 번호, 호실 검색..."
-                            className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-slate-700 dark:text-zinc-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DB5461]/30 focus:border-[#DB5461]"
-                        />
+                        <div className="flex-grow flex gap-2">
+                            <input
+                                type="text"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="이름, 번호, 호실 등 검색..."
+                                className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-slate-700 dark:text-zinc-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DB5461]/30 focus:border-[#DB5461]"
+                            />
+                            <button
+                                onClick={handleSearch}
+                                className="px-4 py-2 rounded-lg bg-zinc-800 dark:bg-zinc-700 text-white font-bold text-[12px] hover:bg-zinc-700 dark:hover:bg-zinc-600 transition-colors shadow-sm h-9 flex-shrink-0"
+                            >
+                                검색
+                            </button>
+                        </div>
                     </div>
                     <h2 className="text-xl font-black text-slate-800 dark:text-zinc-100 tracking-tight">
                         예약 리스트
@@ -437,7 +431,7 @@ function ReservationListPageContent() {
                                         데이터를 불러오는 중입니다...
                                     </td>
                                 </tr>
-                            ) : filteredItems.length === 0 ? (
+                            ) : items.length === 0 ? (
                                 <tr>
                                     <td colSpan={11} className="px-4 py-20 text-center text-slate-400 font-medium bg-white dark:bg-zinc-900">
                                         예약 데이터가 없습니다.
@@ -447,7 +441,7 @@ function ReservationListPageContent() {
                                 // 이름+전화번호 기준으로 그룹 컬러 계산
                                 let groupIndex = 0;
                                 let prevKey = "";
-                                const groupMap = filteredItems.map((item) => {
+                                const groupMap = items.map((item) => {
                                     const key = `${item.guest_name}__${item.phone}`;
                                     if (key !== prevKey) {
                                         if (prevKey !== "") groupIndex++;
@@ -456,7 +450,7 @@ function ReservationListPageContent() {
                                     return groupIndex;
                                 });
 
-                                return filteredItems.map((item, index) => {
+                                    return items.map((item, index) => {
                                     const isCancelled = item.payment_status === "cancelled";
                                     const isEven = groupMap[index] % 2 === 0;
                                     // 그룹별 컬러 (같은 사람은 같은 색, 다른 사람은 반전)

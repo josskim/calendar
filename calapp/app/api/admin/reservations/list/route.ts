@@ -5,18 +5,39 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const pageStr = searchParams.get("page") || "1";
     const limitStr = searchParams.get("limit") || "20";
+    const search = searchParams.get("search") || "";
 
     const page = parseInt(pageStr, 10);
     const limit = parseInt(limitStr, 10);
     const skip = (page - 1) * limit;
 
     try {
-        const total = await prisma.reservation.count();
-        const list = await prisma.reservation.findMany({
-            skip,
-            take: limit,
-            orderBy: [{ use_date: "desc" }, { id: "desc" }],
-        });
+        let where: any = {};
+
+        if (search.trim()) {
+            const keywords = search.trim().split(/\s+/);
+            where.AND = keywords.map(keyword => ({
+                OR: [
+                    { guest_name: { contains: keyword, mode: 'insensitive' } },
+                    { phone: { contains: keyword } },
+                    { category: { contains: keyword, mode: 'insensitive' } },
+                    { type: { contains: keyword, mode: 'insensitive' } },
+                    { user_type: { contains: keyword, mode: 'insensitive' } },
+                    { source: { contains: keyword, mode: 'insensitive' } },
+                    { memo: { contains: keyword, mode: 'insensitive' } },
+                ]
+            }));
+        }
+
+        const [total, list] = await Promise.all([
+            prisma.reservation.count({ where }),
+            prisma.reservation.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: [{ use_date: "desc" }, { id: "desc" }],
+            })
+        ]);
 
         return NextResponse.json({
             total,
