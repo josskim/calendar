@@ -23,7 +23,8 @@ export const metadata: Metadata = {
     title: "StayNamchen",
   },
   icons: {
-    apple: "/icon-192",
+    icon: "/favicon.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
