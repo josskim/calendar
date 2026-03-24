@@ -14,31 +14,34 @@ export async function GET() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#66707f",
-          fontFamily: "Arial, sans-serif",
+          background: "#DB5461",
+          borderRadius: 40,
         }}
       >
         <div
           style={{
-            width: 172,
-            height: 172,
-            borderRadius: 20,
-            background: "#ffffff",
-            border: "4px solid #2d3440",
+            width: "80%",
+            height: "80%",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            color: "#123E6B",
-            gap: 8,
+            border: "8px solid white",
+            borderRadius: 20,
+            padding: 10,
           }}
         >
-          <div style={{ fontSize: 56, lineHeight: 1 }}>🏠✓</div>
-          <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.1, textAlign: "center" }}>
-            Smart Check-in
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.1, textAlign: "center" }}>
-            StayNamchen
+          <div
+            style={{
+              fontSize: 80,
+              fontWeight: 900,
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            31
           </div>
         </div>
       </div>

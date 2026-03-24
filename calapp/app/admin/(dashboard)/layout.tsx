@@ -6,6 +6,7 @@ import {
 } from "./calendar/CalIcons";
 import { NavLinks } from "./NavLinks";
 import { AuthGate } from "../auth-client";
+import { LogoutButton } from "./LogoutButton";
 
 export default function AdminDashboardLayout({
   children,
@@ -43,6 +44,7 @@ export default function AdminDashboardLayout({
           <span className="text-[9px] font-bold text-slate-500 whitespace-nowrap shrink-0">
             관리자님
           </span>
+          <LogoutButton />
         </div>
 
         <div className="hidden md:flex w-full px-6 h-16 items-center justify-between gap-3">
@@ -84,6 +86,7 @@ export default function AdminDashboardLayout({
               <div className="w-10 h-10 rounded-full bg-[#DB5461]/20 flex items-center justify-center overflow-hidden border-2 border-[#DB5461]/10">
                 <div className="w-full h-full bg-[#DB5461]/30" />
               </div>
+              <LogoutButton />
             </div>
           </div>
         </div>
