@@ -54,14 +54,17 @@ function SalesPageContent() {
     const currentYear = new Date().getFullYear();
     const initialYearRaw = parseInt(searchParams.get("year") || currentYear.toString(), 10);
     const initialYear = Math.min(MAX_YEAR, Math.max(MIN_YEAR, initialYearRaw));
+    const initialDateType = (searchParams.get("dateType") || "visit") as "visit" | "deposit";
+
     const [year, setYear] = useState(initialYear);
+    const [dateType, setDateType] = useState<"visit" | "deposit">(initialDateType);
     const [data, setData] = useState<SalesResponse | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchData = useCallback(async (y: number) => {
+    const fetchData = useCallback(async (y: number, dt: "visit" | "deposit") => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/admin/sales/yearly?year=${y}`);
+            const res = await fetch(`/api/admin/sales/yearly?year=${y}&dateType=${dt}`);
             if (res.ok) setData(await res.json());
         } catch (e) {
             console.error(e);
@@ -71,13 +74,18 @@ function SalesPageContent() {
     }, []);
 
     useEffect(() => {
-        fetchData(year);
-    }, [year, fetchData]);
+        fetchData(year, dateType);
+    }, [year, dateType, fetchData]);
 
     const handleYearChange = (y: number) => {
         const nextYear = Math.min(MAX_YEAR, Math.max(MIN_YEAR, y));
         setYear(nextYear);
-        router.replace(`/admin/sales?year=${nextYear}`);
+        router.replace(`/admin/sales?year=${nextYear}&dateType=${dateType}`);
+    };
+
+    const handleDateTypeChange = (dt: "visit" | "deposit") => {
+        setDateType(dt);
+        router.replace(`/admin/sales?year=${year}&dateType=${dt}`);
     };
 
     // 차트 계산
@@ -91,57 +99,92 @@ function SalesPageContent() {
     return (
         <main className="calendar-viewport p-6 max-w-[1400px] mx-auto w-full">
 
-            {/* 연도 네비게이션 */}
-            <div className="flex items-center justify-center gap-4 mb-8">
-                <button
-                    onClick={() => handleYearChange(year - 1)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#DB5461] hover:border-[#DB5461]/40 font-bold text-sm transition-all shadow-sm"
-                >
-                    ← 이전
-                </button>
-                <select
-                    value={year}
-                    onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                    className="px-5 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-slate-800 dark:text-zinc-100 font-black text-lg cursor-pointer shadow-sm focus:outline-none focus:border-[#DB5461] focus:ring-1 focus:ring-[#DB5461]/30"
-                >
-                    {yearOptions.map(y => (
-                        <option key={y} value={y}>{y}년</option>
-                    ))}
-                </select>
-                <button
-                    onClick={() => handleYearChange(year + 1)}
-                    disabled={year >= MAX_YEAR}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#DB5461] hover:border-[#DB5461]/40 font-bold text-sm transition-all shadow-sm"
-                >
-                    다음 →
-                </button>
+            {/* 상단 탭 및 연도 네비게이션 */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+                {/* 탭 전환 */}
+                <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <button
+                        onClick={() => handleDateTypeChange("visit")}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                            dateType === "visit"
+                                ? "bg-white dark:bg-zinc-700 text-[#DB5461] shadow-sm"
+                                : "text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300"
+                        }`}
+                    >
+                        방문일 기준
+                    </button>
+                    <button
+                        onClick={() => handleDateTypeChange("deposit")}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                            dateType === "deposit"
+                                ? "bg-white dark:bg-zinc-700 text-[#DB5461] shadow-sm"
+                                : "text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300"
+                        }`}
+                    >
+                        입금일 기준
+                    </button>
+                </div>
+
+                {/* 연도 네비게이션 */}
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => handleYearChange(year - 1)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#DB5461] hover:border-[#DB5461]/40 font-bold text-sm transition-all shadow-sm"
+                    >
+                        ← 이전
+                    </button>
+                    <select
+                        value={year}
+                        onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                        className="px-5 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-slate-800 dark:text-zinc-100 font-black text-lg cursor-pointer shadow-sm focus:outline-none focus:border-[#DB5461] focus:ring-1 focus:ring-[#DB5461]/30"
+                    >
+                        {yearOptions.map(y => (
+                            <option key={y} value={y}>{y}년</option>
+                        ))}
+                    </select>
+                    <button
+                        onClick={() => handleYearChange(year + 1)}
+                        disabled={year >= MAX_YEAR}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#DB5461] hover:border-[#DB5461]/40 font-bold text-sm transition-all shadow-sm"
+                    >
+                        다음 →
+                    </button>
+                </div>
             </div>
 
             {/* 요약 통계 카드 */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
-                    <div className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">총 매출</div>
+                    <div className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">
+                        {dateType === "deposit" ? "총 입금액(계약)" : "총 매출"}
+                    </div>
                     <div className="text-2xl font-black text-slate-800 dark:text-zinc-100">
                         {loading ? "—" : `${fmt(yearly?.total ?? 0)}`}
                     </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">원</div>
                 </div>
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
-                    <div className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1">팬션 매출</div>
+                    <div className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1">
+                        {dateType === "deposit" ? "팬션 입금" : "팬션 매출"}
+                    </div>
                     <div className="text-2xl font-black text-rose-500">
                         {loading ? "—" : `${fmt(yearly?.pension ?? 0)}`}
                     </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">원</div>
                 </div>
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
-                    <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">캠프닉 매출</div>
+                    <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">
+                        {dateType === "deposit" ? "캠프닉 입금" : "캠프닉 매출"}
+                    </div>
                     <div className="text-2xl font-black text-indigo-500">
                         {loading ? "—" : `${fmt(yearly?.campnic ?? 0)}`}
                     </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">원</div>
                 </div>
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
-                    <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">총 예약건수</div>
+                    <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">
+                        {dateType === "deposit" ? "총 계약건수" : "총 예약건수"}
+                    </div>
                     <div className="text-2xl font-black text-emerald-500">
                         {loading ? "—" : `${fmt(yearly?.count ?? 0)}`}
                     </div>
@@ -185,8 +228,11 @@ function SalesPageContent() {
 
             {/* 월별 바 차트 */}
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 mb-8 shadow-sm">
-                <h3 className="text-base font-black text-slate-700 dark:text-zinc-200 mb-6">
-                    {year}년 월별 매출 현황
+                <h3 className="text-base font-black text-slate-700 dark:text-zinc-200 mb-6 font-['Manrope']">
+                    {year}년 월별 {dateType === "deposit" ? "입금(계약)" : "매출"} 현황
+                    <span className="ml-2 text-[11px] font-bold text-slate-400">
+                        ({dateType === "deposit" ? "입금일 기준" : "방문일 기준"})
+                    </span>
                 </h3>
                 {loading ? (
                     <div className="h-56 flex items-center justify-center text-slate-300 text-sm">데이터 로딩 중...</div>
@@ -242,20 +288,23 @@ function SalesPageContent() {
 
             {/* 월별 데이터 테이블 */}
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex items-center justify-between">
                     <h3 className="text-base font-black text-slate-700 dark:text-zinc-200">월별 상세 내역</h3>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                        기준: {dateType === "deposit" ? "입금일" : "방문일"}
+                    </span>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-zinc-100/80 dark:bg-zinc-800 text-[12px] font-bold text-slate-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
                                 <th className="px-5 py-3">년/월</th>
-                                <th className="px-5 py-3 text-center">예약건수</th>
-                                <th className="px-5 py-3 text-right">총매출</th>
-                                <th className="px-5 py-3 text-right">팬션매출</th>
-                                <th className="px-5 py-3 text-right">캠프닉매출</th>
+                                <th className="px-5 py-3 text-center">{dateType === "deposit" ? "계약건수" : "예약건수"}</th>
+                                <th className="px-5 py-3 text-right">{dateType === "deposit" ? "총입금액" : "총매출"}</th>
+                                <th className="px-5 py-3 text-right">{dateType === "deposit" ? "팬션입금" : "팬션매출"}</th>
+                                <th className="px-5 py-3 text-right">{dateType === "deposit" ? "캠프닉입금" : "캠프닉매출"}</th>
                                 <th className="px-5 py-3 text-right">총추가금액</th>
-                                <th className="px-5 py-3 text-right text-[#DB5461]">야수교매출</th>
+                                <th className="px-5 py-3 text-right text-[#DB5461]">{dateType === "deposit" ? "야수교입금" : "야수교매출"}</th>
                             </tr>
                         </thead>
                         <tbody className="text-[13px]">

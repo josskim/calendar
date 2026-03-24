@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString(), 10);
+    const dateType = (searchParams.get("dateType") || "visit") as "visit" | "deposit";
+    const dateField = dateType === "deposit" ? "deposit_date" : "use_date";
 
     try {
         // 해당 년도의 취소가 아닌 예약 모두 가져오기
         const reservations = await prisma.reservation.findMany({
             where: {
-                use_date: {
+                [dateField]: {
                     gte: new Date(`${year}-01-01T00:00:00.000Z`),
                     lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
                 },
@@ -18,6 +20,7 @@ export async function GET(req: NextRequest) {
             select: {
                 id: true,
                 use_date: true,
+                deposit_date: true,
                 type: true,
                 total_amount: true,
                 extra_amount: true,
@@ -47,7 +50,7 @@ export async function GET(req: NextRequest) {
         }
 
         for (const r of validReservations) {
-            const date = new Date(r.use_date);
+            const date = new Date(r[dateField]);
             // UTC 오프셋 보정 (한국 +9)
             const month = date.getUTCMonth() + 1;
             if (month < 1 || month > 12) continue;
@@ -88,7 +91,7 @@ export async function GET(req: NextRequest) {
             yasugyo: validReservations.filter(r => r.user_type === "야수교").reduce((s: number, r) => s + (r.total_amount ?? 0) + (r.extra_amount ?? 0), 0),
         };
 
-        // 미정산 금액 (오늘 이후 전체 데이터)
+        // 미정산 금액 (오늘 이후 전체 데이터 - use_date 기준 유지)
         const now = new Date();
         now.setHours(0, 0, 0, 0);
         const unsettledRes = await prisma.reservation.findMany({
@@ -125,7 +128,7 @@ export async function GET(req: NextRequest) {
             unsettled.total += amt;
         });
 
-        return NextResponse.json({ year, yearly, months, unsettled });
+        return NextResponse.json({ year, yearly, months, unsettled, dateType });
     } catch (e) {
         console.error("Sales API error", e);
         return NextResponse.json({ error: "Failed to fetch sales data" }, { status: 500 });
