@@ -508,7 +508,7 @@ function ReservationListPageContent() {
                                                 )}
                                             </td>
                                             <td className={`px-4 py-3.5 text-center ${isCancelled ? "line-through decoration-slate-400" : ""}`}>
-                                                {item.source === 'naver' ? '네이버' : item.source === 'phone' ? '전화' : item.source === 'nol' ? '놀' : item.source === 'here' ? '여기' : '기타'}
+                                                {item.source === 'naver' ? '네이버' : item.source === 'phone' ? '전화' : item.source === 'nol' ? '놀' : item.source === 'here' ? '여기' : item.source === 'airbnb' ? '에어비앤비' : '기타'}
                                             </td>
                                             <td className="px-4 py-3.5 relative group">
                                                 <div className="max-w-[150px] truncate">

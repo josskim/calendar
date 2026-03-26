@@ -18,6 +18,7 @@ const SOURCE_OPTIONS = [
   { value: "naver", label: "네이버" },
   { value: "nol", label: "놀" },
   { value: "here", label: "여기" },
+  { value: "airbnb", label: "에어비앤비" },
   { value: "other", label: "기타" },
 ];
 

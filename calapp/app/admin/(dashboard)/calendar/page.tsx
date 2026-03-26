@@ -51,6 +51,12 @@ const SourceIcon = ({ source }: { source: string }) => {
           gi
         </span>
       );
+    case "airbnb":
+      return (
+        <span className="px-0.5 min-w-[12px] h-2.5 bg-[#FF5A5F] text-white flex items-center justify-center text-[7px] font-black rounded-[1px] shrink-0">
+          Air
+        </span>
+      );
     case "other":
     default:
       return <HelpCircle size={9} className="opacity-80" />;
