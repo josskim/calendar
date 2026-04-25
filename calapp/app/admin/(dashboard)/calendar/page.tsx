@@ -18,6 +18,17 @@ type CellDay = {
   iso: string;
 };
 
+type HolidayEntry = {
+  date: string;
+  name: string;
+  source: "default" | "custom";
+  id: number;
+};
+
+type HolidayEditTarget = {
+  id: number;
+} | null;
+
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_LABELS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
 
@@ -184,6 +195,10 @@ function CalendarContent() {
   const [salesDateType, setSalesDateType] = useState<"visit" | "deposit">("visit");
   const [salesData, setSalesData] = useState<SalesResponse | null>(null);
   const [salesLoading, setSalesLoading] = useState(true);
+  const [holidayEntriesData, setHolidayEntriesData] = useState<HolidayEntry[]>([]);
+  const [holidayDateInput, setHolidayDateInput] = useState("");
+  const [holidayNameInput, setHolidayNameInput] = useState("");
+  const [holidayEditTarget, setHolidayEditTarget] = useState<HolidayEditTarget>(null);
 
   const cells = buildCalendarCells(year, month);
 
@@ -208,6 +223,32 @@ function CalendarContent() {
   useEffect(() => {
     fetchReservations();
   }, [year, month]);
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      try {
+        const res = await fetch("/api/admin/holidays");
+        if (!res.ok) return;
+        const holidays = await res.json();
+        setHolidayEntriesData(
+          Array.isArray(holidays)
+            ? holidays
+                .filter((item) => item && typeof item.id === "number" && typeof item.date === "string" && typeof item.name === "string")
+                .map((item) => ({
+                  id: item.id,
+                  date: item.date,
+                  name: item.name,
+                  source: item.source === "default" ? "default" : "custom",
+                }))
+            : []
+        );
+      } catch (error) {
+        console.error("Failed to load holidays", error);
+      }
+    };
+
+    fetchHolidays();
+  }, []);
 
   useEffect(() => {
     const fetchSales = async () => {
@@ -353,6 +394,69 @@ function CalendarContent() {
   const salesMonths = salesData?.months || [];
   const salesMaxTotal = Math.max(...salesMonths.map((m) => m.total), 1);
   const salesYearly = salesData?.yearly;
+  const holidayEntries = useMemo(() => {
+    const map = new Map<string, HolidayEntry[]>();
+
+    for (const entry of holidayEntriesData) {
+      if (!map.has(entry.date)) map.set(entry.date, []);
+      map.get(entry.date)!.push(entry);
+    }
+
+    return map;
+  }, [holidayEntriesData]);
+
+  const refreshHolidays = async () => {
+    const res = await fetch("/api/admin/holidays");
+    if (!res.ok) return;
+    const holidays = await res.json();
+    setHolidayEntriesData(
+      Array.isArray(holidays)
+        ? holidays.map((item) => ({
+            id: item.id,
+            date: item.date,
+            name: item.name,
+            source: item.source === "default" ? "default" : "custom",
+          }))
+        : []
+    );
+  };
+
+  const addHoliday = async () => {
+    if (!holidayDateInput || !holidayNameInput.trim()) return;
+    try {
+      const url = holidayEditTarget ? `/api/admin/holidays/${holidayEditTarget.id}` : "/api/admin/holidays";
+      const method = holidayEditTarget ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: holidayDateInput,
+          name: holidayNameInput.trim(),
+        }),
+      });
+
+      if (!res.ok) return;
+      await refreshHolidays();
+    } catch (error) {
+      console.error("Failed to save holiday", error);
+    }
+
+    setHolidayDateInput("");
+    setHolidayNameInput("");
+    setHolidayEditTarget(null);
+  };
+
+  const startEditHoliday = (holiday: HolidayEntry) => {
+    setHolidayDateInput(holiday.date);
+    setHolidayNameInput(holiday.name);
+    setHolidayEditTarget({ id: holiday.id });
+  };
+
+  const cancelHolidayEdit = () => {
+    setHolidayDateInput("");
+    setHolidayNameInput("");
+    setHolidayEditTarget(null);
+  };
 
   return (
     <>
@@ -408,6 +512,85 @@ function CalendarContent() {
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
           <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+            <div className="px-4 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-700 dark:text-zinc-100">공휴일 표시</h3>
+                    <p className="text-[11px] text-slate-400 mt-1">기본 2026 공휴일 + 수동 입력 공휴일을 날짜 옆에 보여줍니다.</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 dark:bg-amber-900/30 dark:text-amber-200">
+                      기본 {holidayEntriesData.filter((item) => item.source === "default").length}건
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-zinc-800 px-2.5 py-1">
+                      사용자 {holidayEntriesData.filter((item) => item.source === "custom").length}건
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_auto] gap-3">
+                  <input
+                    type="date"
+                    value={holidayDateInput}
+                    onChange={(e) => setHolidayDateInput(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm font-medium text-slate-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-[#DB5461]/30"
+                  />
+                  <input
+                    type="text"
+                    value={holidayNameInput}
+                    onChange={(e) => setHolidayNameInput(e.target.value)}
+                    placeholder="공휴일명 입력"
+                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm font-medium text-slate-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-[#DB5461]/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={addHoliday}
+                    className="rounded-lg bg-[#DB5461] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#c44350] transition-colors"
+                  >
+                    {holidayEditTarget ? "공휴일 수정" : "공휴일 추가"}
+                  </button>
+                </div>
+
+                {holidayEditTarget && (
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">
+                    <span>수동 공휴일 수정 중입니다. 수정 후 버튼을 누르세요.</span>
+                    <button
+                      type="button"
+                      onClick={cancelHolidayEdit}
+                      className="font-bold underline decoration-amber-400/70 underline-offset-2"
+                    >
+                      취소
+                    </button>
+                  </div>
+                )}
+
+                {holidayEntriesData.filter((item) => item.source === "custom").length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {holidayEntriesData
+                      .filter((item) => item.source === "custom")
+                      .map((holiday) => (
+                      <div
+                        key={`${holiday.date}-${holiday.name}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 shadow-sm dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => startEditHoliday(holiday)}
+                          className="inline-flex items-center gap-2"
+                          title="클릭하면 수정합니다"
+                        >
+                          <span>{holiday.date}</span>
+                          <span className="text-amber-400">·</span>
+                          <span>{holiday.name}</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20">
               {WEEKDAYS.map((label, i) => (
                 <div
@@ -425,6 +608,8 @@ function CalendarContent() {
                 const cancelledCount = list.filter((r) => r.payment_status === "cancelled").length;
                 const hasCancelled = cancelledCount > 0;
                 const isOtherMonth = !cell.isCurrentMonth;
+                const holidays = holidayEntries.get(cell.iso) || [];
+                const hasHoliday = holidays.length > 0;
                 return (
                   <div
                     key={cell.iso + cell.day}
@@ -438,7 +623,7 @@ function CalendarContent() {
                         openModal(cell.iso);
                       }
                     }}
-                    className={`calendar-cell ${focusedIsoDate === cell.iso ? "calendar-cell-focused" : ""} ${isOtherMonth ? "bg-white dark:bg-zinc-900 opacity-40" : "cursor-pointer"} ${cell.isToday
+                    className={`calendar-cell ${focusedIsoDate === cell.iso ? "calendar-cell-focused" : ""} ${isOtherMonth ? "bg-white dark:bg-zinc-900 opacity-40" : "cursor-pointer"} ${hasHoliday && !isOtherMonth ? "ring-2 ring-[#DB5461]/40 bg-[#DB5461]/5 dark:bg-[#DB5461]/10" : ""} ${cell.isToday
                       ? "bg-[#DB5461]/5 dark:bg-[#DB5461]/10 border-2 border-[#DB5461]/50"
                       : ([0, 5, 6].includes(cell.date.getDay())
                         ? "bg-[#DB5461]/10"
@@ -446,7 +631,7 @@ function CalendarContent() {
                       }`}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-wrap">
                         <span
                           className={`text-sm font-bold ${cell.isToday ? "font-black text-[#DB5461]" : ""
                             } ${isOtherMonth
@@ -460,6 +645,14 @@ function CalendarContent() {
                         >
                           {cell.day}
                         </span>
+                        {hasHoliday && (
+                          <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 shadow-sm ring-1 ring-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800/40">
+                            {holidays[0].name}
+                            {holidays.length > 1 && (
+                              <span className="ml-1 text-[8px] opacity-80">+{holidays.length - 1}</span>
+                            )}
+                          </span>
+                        )}
                         {hasCancelled && (
                           <span className="inline-flex items-center rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold dark:bg-amber-900/30 dark:text-amber-300">
                             예약취소{cancelledCount}건
