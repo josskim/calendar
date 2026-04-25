@@ -201,6 +201,18 @@ function CalendarContent() {
   const [holidayNameInput, setHolidayNameInput] = useState("");
   const [holidayEditTarget, setHolidayEditTarget] = useState<HolidayEditTarget>(null);
 
+  const toHolidayEntry = (item: {
+    id: number;
+    date: string;
+    name: string;
+    source?: string;
+  }): HolidayEntry => ({
+    id: item.id,
+    date: item.date,
+    name: item.name,
+    source: item.source === "custom" ? "custom" : "default",
+  });
+
   const cells = buildCalendarCells(year, month);
 
   const fetchReservations = async () => {
@@ -245,12 +257,7 @@ function CalendarContent() {
           Array.isArray(holidays)
             ? holidays
                 .filter((item) => item && typeof item.id === "number" && typeof item.date === "string" && typeof item.name === "string")
-                .map((item) => ({
-                  id: item.id,
-                  date: item.date,
-                  name: item.name,
-                  source: item.source === "default" ? "default" : "custom",
-                }))
+                .map((item) => toHolidayEntry(item))
             : [];
 
         setHolidayEntriesData(
