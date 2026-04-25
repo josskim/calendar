@@ -14,6 +14,7 @@ export function NavLinks({ compact = false }: NavLinksProps) {
         { name: "예약캘린더", href: "/admin/calendar" },
         { name: "예약리스트", href: "/admin/reservations" },
         { name: "년도별매출", href: "/admin/sales" },
+        { name: "년도별비교매출", href: "/admin/sales/comparison" },
     ];
 
     return (
@@ -22,7 +23,7 @@ export function NavLinks({ compact = false }: NavLinksProps) {
             : "flex items-center gap-1 w-full md:w-auto md:ml-4"
         }>
             {navItems.map((item) => {
-                const isActive = pathname.startsWith(item.href);
+                const isActive = pathname === item.href;
                 return (
                     <Link
                         key={item.href}

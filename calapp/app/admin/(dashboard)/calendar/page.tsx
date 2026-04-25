@@ -19,6 +19,37 @@ type CellDay = {
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_LABELS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+
+type MonthData = {
+  month: number;
+  count: number;
+  total: number;
+  pension: number;
+  campnic: number;
+  extra: number;
+  yasugyo: number;
+};
+
+type YearlyData = {
+  count: number;
+  total: number;
+  pension: number;
+  campnic: number;
+  extra: number;
+  yasugyo: number;
+};
+
+type SalesResponse = {
+  year: number;
+  yearly: YearlyData;
+  months: MonthData[];
+  dateType: "visit" | "deposit";
+};
+
+function fmt(n: number) {
+  return (n || 0).toLocaleString();
+}
 
 /** code.html과 동일한 고정 예약 슬롯 (모든 날짜 공통). 첫 번째는 예약 완료(키 컬러). */
 const FIXED_SLOTS = [
@@ -150,6 +181,9 @@ function CalendarContent() {
   const [modalDayReservations, setModalDayReservations] = useState<any[]>([]);
   const [reservationsByDate, setReservationsByDate] = useState<Record<string, any[]>>({});
   const [focusedIsoDate, setFocusedIsoDate] = useState<string | null>(null);
+  const [salesDateType, setSalesDateType] = useState<"visit" | "deposit">("visit");
+  const [salesData, setSalesData] = useState<SalesResponse | null>(null);
+  const [salesLoading, setSalesLoading] = useState(true);
 
   const cells = buildCalendarCells(year, month);
 
@@ -174,6 +208,24 @@ function CalendarContent() {
   useEffect(() => {
     fetchReservations();
   }, [year, month]);
+
+  useEffect(() => {
+    const fetchSales = async () => {
+      setSalesLoading(true);
+      try {
+        const res = await fetch(`/api/admin/sales/yearly?year=${year}&dateType=${salesDateType}`);
+        if (res.ok) {
+          setSalesData(await res.json());
+        }
+      } catch (e) {
+        console.error("Failed to fetch sales data", e);
+      } finally {
+        setSalesLoading(false);
+      }
+    };
+
+    fetchSales();
+  }, [year, salesDateType]);
 
   // Sync 연동: URL 파라미터가 있으면 모달 자동 오픈
   useEffect(() => {
@@ -298,6 +350,9 @@ function CalendarContent() {
     "1월", "2월", "3월", "4월", "5월", "6월",
     "7월", "8월", "9월", "10월", "11월", "12월",
   ];
+  const salesMonths = salesData?.months || [];
+  const salesMaxTotal = Math.max(...salesMonths.map((m) => m.total), 1);
+  const salesYearly = salesData?.yearly;
 
   return (
     <>
@@ -477,6 +532,133 @@ function CalendarContent() {
             </div>
           </div>
         </div>
+
+        <section className="mt-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 className="text-base font-black text-slate-700 dark:text-zinc-100">
+                {year}년 월별 매출 현황
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-1">
+                기준: {salesDateType === "deposit" ? "입금일 기준" : "방문일 기준"}
+              </p>
+            </div>
+            <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl border border-zinc-200 dark:border-zinc-700">
+              <button
+                type="button"
+                onClick={() => setSalesDateType("visit")}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  salesDateType === "visit"
+                    ? "bg-white dark:bg-zinc-700 text-[#DB5461] shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300"
+                }`}
+              >
+                방문일 기준
+              </button>
+              <button
+                type="button"
+                onClick={() => setSalesDateType("deposit")}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  salesDateType === "deposit"
+                    ? "bg-white dark:bg-zinc-700 text-[#DB5461] shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300"
+                }`}
+              >
+                입금일 기준
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  {salesDateType === "deposit" ? "총 입금액" : "총 매출"}
+                </div>
+                <div className="text-2xl font-black text-slate-800 dark:text-zinc-100">
+                  {salesLoading ? "—" : fmt(salesYearly?.total ?? 0)}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">원</div>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4">
+                <div className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1">
+                  {salesDateType === "deposit" ? "팬션 입금" : "팬션 매출"}
+                </div>
+                <div className="text-2xl font-black text-rose-500">
+                  {salesLoading ? "—" : fmt(salesYearly?.pension ?? 0)}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">원</div>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4">
+                <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">
+                  {salesDateType === "deposit" ? "캠프닉 입금" : "캠프닉 매출"}
+                </div>
+                <div className="text-2xl font-black text-indigo-500">
+                  {salesLoading ? "—" : fmt(salesYearly?.campnic ?? 0)}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">원</div>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4">
+                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">
+                  {salesDateType === "deposit" ? "총 계약건수" : "총 예약건수"}
+                </div>
+                <div className="text-2xl font-black text-emerald-500">
+                  {salesLoading ? "—" : fmt(salesYearly?.count ?? 0)}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">건</div>
+              </div>
+            </div>
+
+            <div className="bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4 md:p-6">
+              {salesLoading ? (
+                <div className="h-64 flex items-center justify-center text-slate-400 text-sm">매출 데이터 로딩 중...</div>
+              ) : (
+                <div className="flex items-end gap-2 h-64">
+                  {MONTH_LABELS.map((label, i) => {
+                    const m = salesMonths.find((x) => x.month === i + 1);
+                    const pension = m?.pension ?? 0;
+                    const campnic = m?.campnic ?? 0;
+                    const total = m?.total ?? 0;
+                    const barH = total === 0 ? 0 : Math.max(4, Math.round((total / salesMaxTotal) * 200));
+                    const pensionH = total === 0 ? 0 : Math.round((pension / total) * barH);
+                    const campnicH = barH - pensionH;
+
+                    return (
+                      <div key={label} className="flex-1 flex flex-col items-center gap-1.5 group">
+                        <div className="text-[10px] text-slate-400 dark:text-zinc-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity text-center whitespace-nowrap">
+                          {total > 0 ? `${fmt(Math.round(total / 10000))}만` : ""}
+                        </div>
+                        <div className="w-full flex flex-col justify-end rounded-lg overflow-hidden" style={{ height: 200 }}>
+                          <div
+                            className="w-full bg-indigo-400 dark:bg-indigo-500 transition-all duration-700 ease-out"
+                            style={{ height: campnicH }}
+                            title={`캠프닉: ${fmt(campnic)}원`}
+                          />
+                          <div
+                            className="w-full bg-rose-400 dark:bg-rose-500 transition-all duration-700 ease-out"
+                            style={{ height: pensionH }}
+                            title={`팬션: ${fmt(pension)}원`}
+                          />
+                        </div>
+                        <div className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">{label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="flex items-center gap-5 mt-4 justify-center">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-rose-400" />
+                  <span className="text-xs text-slate-500 font-medium">팬션</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-indigo-400" />
+                  <span className="text-xs text-slate-500 font-medium">캠프닉</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <footer className="mt-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl py-4 px-6">
           <div className="max-w-[1400px] mx-auto flex flex-wrap items-center justify-between gap-4">
