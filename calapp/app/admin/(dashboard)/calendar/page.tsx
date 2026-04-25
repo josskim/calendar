@@ -9,6 +9,7 @@ import {
 } from "./CalIcons";
 import { ReservationModal } from "./ReservationModal";
 import { Phone, HelpCircle } from "lucide-react";
+import { DEFAULT_HOLIDAYS } from "@/lib/holiday-defaults";
 
 type CellDay = {
   date: Date;
@@ -228,9 +229,19 @@ function CalendarContent() {
     const fetchHolidays = async () => {
       try {
         const res = await fetch("/api/admin/holidays");
-        if (!res.ok) return;
+        if (!res.ok) {
+          setHolidayEntriesData(
+            DEFAULT_HOLIDAYS.map((item, index) => ({
+              id: -(index + 1),
+              date: item.date,
+              name: item.name,
+              source: "default",
+            }))
+          );
+          return;
+        }
         const holidays = await res.json();
-        setHolidayEntriesData(
+        const normalized =
           Array.isArray(holidays)
             ? holidays
                 .filter((item) => item && typeof item.id === "number" && typeof item.date === "string" && typeof item.name === "string")
@@ -240,10 +251,28 @@ function CalendarContent() {
                   name: item.name,
                   source: item.source === "default" ? "default" : "custom",
                 }))
-            : []
+            : [];
+
+        setHolidayEntriesData(
+          normalized.length > 0
+            ? normalized
+            : DEFAULT_HOLIDAYS.map((item, index) => ({
+                id: -(index + 1),
+                date: item.date,
+                name: item.name,
+                source: "default",
+              }))
         );
       } catch (error) {
         console.error("Failed to load holidays", error);
+        setHolidayEntriesData(
+          DEFAULT_HOLIDAYS.map((item, index) => ({
+            id: -(index + 1),
+            date: item.date,
+            name: item.name,
+            source: "default",
+          }))
+        );
       }
     };
 
