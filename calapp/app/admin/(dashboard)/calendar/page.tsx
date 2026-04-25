@@ -405,6 +405,15 @@ function CalendarContent() {
     return map;
   }, [holidayEntriesData]);
 
+  const currentMonthHolidays = useMemo(() => {
+    return cells
+      .filter((cell) => cell.isCurrentMonth)
+      .flatMap((cell) => (holidayEntries.get(cell.iso) || []).map((holiday) => ({
+        ...holiday,
+        iso: cell.iso,
+      })));
+  }, [cells, holidayEntries]);
+
   const refreshHolidays = async () => {
     const res = await fetch("/api/admin/holidays");
     if (!res.ok) return;
@@ -511,10 +520,10 @@ function CalendarContent() {
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
-            <div className="px-4 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-3">
+            <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+              <div className="px-4 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-black text-slate-700 dark:text-zinc-100">공휴일 표시</h3>
                     <p className="text-[11px] text-slate-400 mt-1">기본 2026 공휴일 + 수동 입력 공휴일을 날짜 옆에 보여줍니다.</p>
@@ -528,6 +537,22 @@ function CalendarContent() {
                     </span>
                   </div>
                 </div>
+
+                {currentMonthHolidays.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-900 shadow-sm dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100">
+                    <span className="shrink-0">이번 달 공휴일</span>
+                    {currentMonthHolidays.map((holiday) => (
+                      <span
+                        key={`${holiday.iso}-${holiday.id}`}
+                        className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-amber-800 ring-1 ring-amber-300 dark:bg-zinc-950 dark:text-amber-200 dark:ring-amber-800/40"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        {holiday.name}
+                        <span className="text-[10px] font-bold opacity-70">{holiday.date.slice(5)}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_auto] gap-3">
                   <input
@@ -623,7 +648,7 @@ function CalendarContent() {
                         openModal(cell.iso);
                       }
                     }}
-                    className={`calendar-cell ${focusedIsoDate === cell.iso ? "calendar-cell-focused" : ""} ${isOtherMonth ? "bg-white dark:bg-zinc-900 opacity-40" : "cursor-pointer"} ${hasHoliday && !isOtherMonth ? "ring-2 ring-[#DB5461]/40 bg-[#DB5461]/5 dark:bg-[#DB5461]/10" : ""} ${cell.isToday
+                    className={`calendar-cell ${focusedIsoDate === cell.iso ? "calendar-cell-focused" : ""} ${isOtherMonth ? "bg-white dark:bg-zinc-900 opacity-40" : "cursor-pointer"} ${hasHoliday && !isOtherMonth ? "ring-2 ring-amber-300 bg-amber-50 dark:bg-amber-900/10 dark:ring-amber-700/60" : ""} ${cell.isToday
                       ? "bg-[#DB5461]/5 dark:bg-[#DB5461]/10 border-2 border-[#DB5461]/50"
                       : ([0, 5, 6].includes(cell.date.getDay())
                         ? "bg-[#DB5461]/10"
@@ -646,7 +671,7 @@ function CalendarContent() {
                           {cell.day}
                         </span>
                         {hasHoliday && (
-                          <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 shadow-sm ring-1 ring-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800/40">
+                          <span className="inline-flex items-center rounded-md bg-amber-200/80 px-1.5 py-0.5 text-[9px] font-black text-amber-950 shadow-sm ring-1 ring-amber-400 dark:bg-amber-900/50 dark:text-amber-100 dark:ring-amber-700/60">
                             {holidays[0].name}
                             {holidays.length > 1 && (
                               <span className="ml-1 text-[8px] opacity-80">+{holidays.length - 1}</span>
