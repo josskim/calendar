@@ -7,58 +7,8 @@ datasource db {
   provider = "postgresql"
 }
 
-model Pension {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  slug         String   @unique
-  customDomain String?  @unique
-  logoUrl      String?
-  themeConfig  Json?    @default("{}")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  rooms        Room[]
-  reservations reservation[]
-  admins       admin[]
-
-  @@map("pensions")
-}
-
-model Room {
-  id           String   @id @default(cuid())
-  pensionId    String
-  pension      Pension  @relation(fields: [pensionId], references: [id])
-  name         String
-  description  String?
-  basePrice    Int
-  maxPeople    Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  images       Image[]
-  reservations reservation[]
-
-  @@map("rooms")
-}
-
-model Image {
-  id        String   @id @default(cuid())
-  roomId    String
-  room      Room     @relation(fields: [roomId], references: [id])
-  url       String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-
-  @@map("images")
-}
-
 model reservation {
   id             BigInt   @id @default(autoincrement())
-  pensionId      String?
-  pension        Pension? @relation(fields: [pensionId], references: [id])
-  roomId         String?
-  room           Room?    @relation(fields: [roomId], references: [id])
-  
   type           String
   category       String
   use_date       DateTime
@@ -85,8 +35,6 @@ model admin {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   password  String
-  pensionId String?
-  pension   Pension? @relation(fields: [pensionId], references: [id])
   createdAt DateTime @default(now())
 
   @@map("admins")
