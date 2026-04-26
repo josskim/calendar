@@ -2,11 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
 interface PensionPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export default async function PensionPage({ params }: PensionPageProps) {
-  const { slug } = params;
+  const { slug } = await params;
 
   // DB에서 해당 슬러그 또는 도메인과 일치하는 펜션 조회
   const pension = await prisma.pension.findFirst({
