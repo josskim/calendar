@@ -19,34 +19,46 @@ export async function GET(req: NextRequest) {
   const start = new Date(y, m - 1, 1);
   const end = new Date(y, m, 0, 23, 59, 59, 999);
 
-  const list = await prisma.reservation.findMany({
-    where: {
-      use_date: { gte: start, lte: end },
-    },
-    orderBy: { use_date: "asc" },
-  });
+  try {
+    const list = await prisma.reservation.findMany({
+      where: {
+        use_date: { gte: start, lte: end },
+      },
+      orderBy: { use_date: "asc" },
+    });
 
-  return NextResponse.json(
-    list.map((r) => ({
-      id: r.id.toString(),
-      type: r.type,
-      category: r.category,
-      use_date: r.use_date.toISOString(),
-      nights: r.nights,
-      quantity: r.quantity,
-      guest_name: r.guest_name,
-      phone: r.phone,
-      people_count: r.people_count,
-      user_type: r.user_type,
-      total_amount: r.total_amount,
-      extra_amount: r.extra_amount,
-      payment_status: r.payment_status,
-      deposit_date: r.deposit_date.toISOString(),
-      cancel_date: r.cancel_date.toISOString(),
-      source: r.source,
-      memo: r.memo,
-    }))
-  );
+    return NextResponse.json(
+      list.map((r) => ({
+        id: r.id.toString(),
+        type: r.type,
+        category: r.category,
+        use_date: r.use_date.toISOString(),
+        nights: r.nights,
+        quantity: r.quantity,
+        guest_name: r.guest_name,
+        phone: r.phone,
+        people_count: r.people_count,
+        user_type: r.user_type,
+        total_amount: r.total_amount,
+        extra_amount: r.extra_amount,
+        payment_status: r.payment_status,
+        deposit_date: r.deposit_date.toISOString(),
+        cancel_date: r.cancel_date.toISOString(),
+        source: r.source,
+        memo: r.memo,
+      }))
+    );
+  } catch (error: any) {
+    console.error("Failed to fetch reservations:", error);
+    return NextResponse.json(
+      { 
+        error: "Failed to fetch reservations", 
+        details: error.message,
+        code: error.code // Prisma error code
+      }, 
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
