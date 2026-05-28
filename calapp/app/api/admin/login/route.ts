@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
@@ -10,12 +11,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false }, { status: 401 });
   }
 
-  const admin = await prisma.admin.findUnique({
-    where: { username },
+  const normalizedUsername = username.trim();
+  const normalizedPassword = password.trim();
+
+  const admin = await prisma.admin.findFirst({
+    where: {
+      username: {
+        equals: normalizedUsername,
+        mode: "insensitive",
+      },
+    },
   });
 
-  // NOTE: This matches your current setup (plain-text password in DB).
-  if (!admin || admin.password !== password) {
+  if (!admin) {
+    return NextResponse.json({ success: false }, { status: 401 });
+  }
+
+  const passwordMatches =
+    admin.password === normalizedPassword ||
+    (admin.password.startsWith("$2") &&
+      (await bcrypt.compare(normalizedPassword, admin.password)));
+
+  if (!passwordMatches) {
     return NextResponse.json({ success: false }, { status: 401 });
   }
 

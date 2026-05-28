@@ -37,7 +37,7 @@ model admin {
   password  String
   createdAt DateTime @default(now())
 
-  @@map("admins")
+  @@map("admin")
 }
 
 model holiday {
