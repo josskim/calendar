@@ -556,7 +556,7 @@ function CalendarContent() {
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-            <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+            <div className="overflow-visible">
               <div className="px-4 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70">
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between gap-3">
