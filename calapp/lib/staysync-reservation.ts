@@ -177,7 +177,7 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
               payment_status: "confirmed",
               deposit_date: depositDate,
               cancel_date: depositDate,
-              source: "staysync",
+              source: "phone",
               memo: memoParts.join("\n"),
             },
           })
