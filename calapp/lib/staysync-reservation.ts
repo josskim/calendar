@@ -202,8 +202,11 @@ export async function inspectStaySyncConflicts(
 
 export async function createStaySyncReservation(input: StaySyncReservationInput) {
   const marker = `[StaySync:${input.sourceRef}]`;
-  const useDate = parseKstDate(input.startDate);
-  const depositDate = parseKstDate(input.depositDate);
+  // The reservations table uses timestamp-without-time-zone as a calendar date.
+  // Match the admin API's UTC-midnight representation so YYYY-MM-DD is not
+  // shifted to the previous cell when the calendar groups ISO date strings.
+  const useDate = new Date(`${input.startDate}T00:00:00.000Z`);
+  const depositDate = new Date(`${input.depositDate}T00:00:00.000Z`);
   const memoParts = [
     marker,
     input.reservationType === "campnic" ? `캠프닉 구분: ${input.userType}` : "",
@@ -237,7 +240,11 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
       }
 
       const created = [];
-      for (const [index, room] of input.rooms.entries()) {
+      const chargedCategory =
+        input.reservationType === "pension" && input.rooms.includes("201호")
+          ? "201호"
+          : input.rooms[0];
+      for (const room of input.rooms) {
         created.push(
           await tx.reservation.create({
             data: {
@@ -250,7 +257,7 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
               phone: input.phone,
               people_count: input.peopleCount,
               user_type: input.userType,
-              total_amount: index === 0 ? input.totalAmount : 0,
+              total_amount: room === chargedCategory ? input.totalAmount : 0,
               extra_amount: 0,
               payment_status: "confirmed",
               deposit_date: depositDate,

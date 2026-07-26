@@ -223,8 +223,16 @@ function CalendarContent() {
         const grouped: Record<string, any[]> = {};
         for (const r of data) {
           const iso = r.use_date.slice(0, 10);
-          if (!grouped[iso]) grouped[iso] = [];
-          grouped[iso].push(r);
+          const occupiedDays = r.type === "pension"
+            ? Math.max(1, Number(r.nights) || 1)
+            : 1;
+          for (let offset = 0; offset < occupiedDays; offset += 1) {
+            const occupied = new Date(`${iso}T00:00:00.000Z`);
+            occupied.setUTCDate(occupied.getUTCDate() + offset);
+            const occupiedIso = occupied.toISOString().slice(0, 10);
+            if (!grouped[occupiedIso]) grouped[occupiedIso] = [];
+            grouped[occupiedIso].push(r);
+          }
         }
         setReservationsByDate(grouped);
       }

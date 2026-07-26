@@ -192,7 +192,8 @@ try {
   );
 
   const stored = await database.query(
-    `SELECT category, source, people_count, memo
+    `SELECT category, source, people_count, total_amount, memo,
+            to_char(use_date, 'YYYY-MM-DD HH24:MI:SS') AS stored_use_date
        FROM reservations
       WHERE memo LIKE $1
       ORDER BY id`,
@@ -203,6 +204,15 @@ try {
   assert(
     stored.rows.every((row) => row.people_count === 99),
     "people count is not 99"
+  );
+  assert(
+    stored.rows.every((row) => row.stored_use_date === "2099-12-20 00:00:00"),
+    "calendar date was shifted while storing"
+  );
+  assert(
+    stored.rows.find((row) => row.category === "201호")?.total_amount === 800000 &&
+      stored.rows.filter((row) => row.category !== "201호").every((row) => row.total_amount === 0),
+    "total amount was not assigned only to room 201"
   );
   assert(
     stored.rows.every((row) => row.memo.includes("바베큐 서비스")),
@@ -249,6 +259,8 @@ try {
         source: "phone",
         peopleCount: 99,
         specialRequestStored: true,
+        calendarDateStoredAtMidnight: true,
+        amountAssignedOnlyToRoom201: true,
         editableCalendarMemoStored: true,
         checkoutBoundaryAvailable: true,
         twoNightOverlapDetected: true,
