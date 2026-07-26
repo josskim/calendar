@@ -18,7 +18,13 @@ export async function POST(req: NextRequest) {
     const result = await createStaySyncReservation(parsed.data);
     if ("conflicts" in result) {
       return NextResponse.json(
-        { error: "OVERBOOKING_CONFLICT", conflicts: result.conflicts },
+        {
+          error:
+            parsed.data.reservationType === "campnic"
+              ? "CAMPNIC_CAPACITY_FULL"
+              : "OVERBOOKING_CONFLICT",
+          conflicts: result.conflicts,
+        },
         { status: 409 }
       );
     }

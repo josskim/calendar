@@ -4,9 +4,11 @@ import {
   addNights,
   findReservationConflicts,
   parseKstDate,
+  type ReservationConflict,
 } from "@/lib/reservation-overlap";
 
 export type StaySyncReservationInput = {
+  reservationType: "pension" | "campnic";
   sourceRef: string;
   startDate: string;
   nights: number;
@@ -18,11 +20,14 @@ export type StaySyncReservationInput = {
   totalAmount: number;
   depositDate: string;
   rawSummary: string;
+  userType: "일반" | "야수교";
+  usageTime: string;
   force?: boolean;
   overrideReason?: string;
 };
 
 const PENSION_ROOMS = new Set(["101호", "201호", "202호"]);
+const CAMPNIC_SESSIONS = new Set(["캠프닉1부", "캠프닉2부"]);
 
 export function validateStaySyncInput(value: unknown): {
   data?: StaySyncReservationInput;
@@ -31,12 +36,15 @@ export function validateStaySyncInput(value: unknown): {
   if (!value || typeof value !== "object") return { error: "Invalid JSON body" };
   const body = value as Record<string, unknown>;
 
+  const reservationType = String(body.reservationType ?? "pension").trim();
   const sourceRef = String(body.sourceRef ?? "").trim();
   const startDate = String(body.startDate ?? "").trim();
   const guestName = String(body.guestName ?? "").trim();
   const phone = String(body.phone ?? "").replace(/\D/g, "");
   const contactName = String(body.contactName ?? "").trim();
   const rawSummary = String(body.rawSummary ?? "").trim().slice(0, 2000);
+  const userType = String(body.userType ?? "일반").trim();
+  const usageTime = String(body.usageTime ?? "").trim().slice(0, 100);
   const overrideReason = String(body.overrideReason ?? "").trim().slice(0, 300);
   const rooms = Array.from(
     new Set(
@@ -60,11 +68,34 @@ export function validateStaySyncInput(value: unknown): {
   } catch {
     return { error: "startDate and depositDate must use YYYY-MM-DD" };
   }
-  if (!Number.isInteger(nights) || nights < 1 || nights > 30) {
+  if (reservationType !== "pension" && reservationType !== "campnic") {
+    return { error: "reservationType must be pension or campnic" };
+  }
+  if (
+    reservationType === "pension" &&
+    (!Number.isInteger(nights) || nights < 1 || nights > 30)
+  ) {
     return { error: "nights must be between 1 and 30" };
   }
-  if (rooms.length === 0 || rooms.some((room) => !PENSION_ROOMS.has(room))) {
-    return { error: "rooms must contain supported pension rooms" };
+  const supportedCategories =
+    reservationType === "campnic" ? CAMPNIC_SESSIONS : PENSION_ROOMS;
+  if (rooms.length === 0 || rooms.some((room) => !supportedCategories.has(room))) {
+    return {
+      error:
+        reservationType === "campnic"
+          ? "rooms must contain supported campnic sessions"
+          : "rooms must contain supported pension rooms",
+    };
+  }
+  if (userType !== "일반" && userType !== "야수교") {
+    return { error: "userType must be 일반 or 야수교" };
+  }
+  if (
+    reservationType === "campnic" &&
+    userType === "야수교" &&
+    (rooms.length !== 1 || rooms[0] !== "캠프닉1부")
+  ) {
+    return { error: "야수교 campnic reservations must use 캠프닉1부" };
   }
   if (!guestName) return { error: "guestName is required" };
   if (!Number.isInteger(peopleCount) || peopleCount < 0 || peopleCount > 100) {
@@ -79,9 +110,10 @@ export function validateStaySyncInput(value: unknown): {
 
   return {
     data: {
+      reservationType,
       sourceRef,
       startDate,
-      nights,
+      nights: reservationType === "campnic" ? 0 : nights,
       rooms,
       guestName,
       phone,
@@ -90,6 +122,8 @@ export function validateStaySyncInput(value: unknown): {
       totalAmount,
       depositDate,
       rawSummary,
+      userType,
+      usageTime,
       force,
       overrideReason,
     },
@@ -101,8 +135,45 @@ type ReservationDb = Pick<Prisma.TransactionClient, "reservation">;
 export async function inspectStaySyncConflicts(
   input: StaySyncReservationInput,
   db: ReservationDb = prisma
-) {
+): Promise<ReservationConflict[]> {
   const requestedStart = parseKstDate(input.startDate);
+  if (input.reservationType === "campnic") {
+    const requestedEnd = addNights(requestedStart, 1);
+    const rows = await db.reservation.findMany({
+      where: {
+        type: "campnic",
+        category: { in: input.rooms },
+        payment_status: { not: "cancelled" },
+        use_date: { gte: requestedStart, lt: requestedEnd },
+      },
+      select: {
+        id: true,
+        category: true,
+        use_date: true,
+        nights: true,
+        guest_name: true,
+        phone: true,
+        payment_status: true,
+      },
+    });
+    const counts = new Map<string, number>();
+    rows.forEach((row) => counts.set(row.category, (counts.get(row.category) ?? 0) + 1));
+    return input.rooms.flatMap((category) =>
+      (counts.get(category) ?? 0) >= 6
+        ? [
+            {
+              id: `capacity:${category}:${input.startDate}`,
+              category,
+              startDate: input.startDate,
+              endDate: input.startDate,
+              nights: 0,
+              guestName: "정원 6팀 마감",
+              phone: "",
+            },
+          ]
+        : []
+    );
+  }
   const requestedEnd = addNights(requestedStart, input.nights);
 
   const rows = await db.reservation.findMany({
@@ -132,6 +203,9 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
   const depositDate = parseKstDate(input.depositDate);
   const memoParts = [
     marker,
+    input.reservationType === "campnic" ? `캠프닉 구분: ${input.userType}` : "",
+    input.usageTime ? `이용시간: ${input.usageTime}` : "",
+    input.userType === "야수교" ? "야수교" : "",
     input.contactName ? `휴대폰 연락처: ${input.contactName}` : "",
     input.rawSummary ? `문자 요약: ${input.rawSummary}` : "",
     input.force ? `오버부킹 강제등록 사유: ${input.overrideReason}` : "",
@@ -163,15 +237,15 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
         created.push(
           await tx.reservation.create({
             data: {
-              type: "pension",
+              type: input.reservationType,
               category: room,
               use_date: useDate,
-              nights: input.nights,
+              nights: input.reservationType === "campnic" ? 0 : input.nights,
               quantity: 1,
               guest_name: input.guestName,
               phone: input.phone,
               people_count: input.peopleCount,
-              user_type: "일반",
+              user_type: input.userType,
               total_amount: index === 0 ? input.totalAmount : 0,
               extra_amount: 0,
               payment_status: "confirmed",

@@ -22,7 +22,9 @@ const sourceRef = `staysync_e2e_${runId}`;
 const conflictSourceRef = `${sourceRef}_conflict`;
 const marker = `[StaySync:${sourceRef}]`;
 const conflictMarker = `[StaySync:${conflictSourceRef}]`;
+const markerPrefix = `[StaySync:${sourceRef}`;
 const baseReservation = {
+  reservationType: "pension",
   sourceRef,
   startDate: "2099-12-20",
   nights: 2,
@@ -34,6 +36,8 @@ const baseReservation = {
   totalAmount: 800000,
   depositDate: "2099-12-01",
   rawSummary: "요청사항: 바베큐 서비스 운영 연동 테스트",
+  userType: "일반",
+  usageTime: "",
 };
 
 async function request(path, body) {
@@ -93,6 +97,67 @@ try {
   assert(rejected.status === 409, `conflicting registration HTTP ${rejected.status}`);
   assert(rejected.data.error === "OVERBOOKING_CONFLICT", "wrong conflict error");
 
+  const generalCampnic = {
+    ...baseReservation,
+    sourceRef: `${sourceRef}_campnic_general`,
+    reservationType: "campnic",
+    startDate: "2099-12-22",
+    nights: 0,
+    rooms: ["캠프닉2부"],
+    guestName: "StaySync캠프닉일반테스트",
+    totalAmount: 80000,
+    userType: "일반",
+    usageTime: "16시~21시",
+    rawSummary: "캠프닉 일반 2부 운영 연동 테스트",
+  };
+  const generalCreated = await request("/api/mobile/reservations", generalCampnic);
+  assert(generalCreated.status === 201, `general campnic HTTP ${generalCreated.status}`);
+
+  const yasugyoCampnic = {
+    ...generalCampnic,
+    sourceRef: `${sourceRef}_campnic_yasugyo`,
+    startDate: "2099-12-23",
+    rooms: ["캠프닉1부"],
+    guestName: "StaySync야수교테스트",
+    userType: "야수교",
+    usageTime: "10시~18시",
+    rawSummary: "캠프닉 야수교 종일 운영 연동 테스트",
+  };
+  const yasugyoCreated = await request("/api/mobile/reservations", yasugyoCampnic);
+  assert(yasugyoCreated.status === 201, `yasugyo campnic HTTP ${yasugyoCreated.status}`);
+
+  const capacityBase = {
+    ...generalCampnic,
+    startDate: "2099-12-24",
+    rooms: ["캠프닉2부"],
+    usageTime: "16시~21시",
+  };
+  for (let index = 1; index <= 6; index += 1) {
+    const capacityCreated = await request("/api/mobile/reservations", {
+      ...capacityBase,
+      sourceRef: `${sourceRef}_capacity_${index}`,
+      guestName: `StaySync정원테스트${index}`,
+    });
+    assert(capacityCreated.status === 201, `capacity row ${index} HTTP ${capacityCreated.status}`);
+  }
+  const seventhCampnic = {
+    ...capacityBase,
+    sourceRef: `${sourceRef}_capacity_7`,
+    guestName: "StaySync정원초과테스트",
+  };
+  const capacityCheck = await request(
+    "/api/mobile/reservations/check",
+    seventhCampnic
+  );
+  assert(capacityCheck.status === 200, `capacity check HTTP ${capacityCheck.status}`);
+  assert(capacityCheck.data.available === false, "campnic capacity was not detected");
+  const capacityRejected = await request("/api/mobile/reservations", seventhCampnic);
+  assert(capacityRejected.status === 409, `capacity registration HTTP ${capacityRejected.status}`);
+  assert(
+    capacityRejected.data.error === "CAMPNIC_CAPACITY_FULL",
+    "wrong campnic capacity error"
+  );
+
   const stored = await database.query(
     `SELECT category, source, people_count, memo
        FROM reservations
@@ -111,6 +176,31 @@ try {
     "special request is missing from memo"
   );
 
+  const campnicStored = await database.query(
+    `SELECT category, type, nights, user_type, source, memo
+       FROM reservations
+      WHERE memo LIKE $1 OR memo LIKE $2
+      ORDER BY id`,
+    [
+      `%[StaySync:${generalCampnic.sourceRef}]%`,
+      `%[StaySync:${yasugyoCampnic.sourceRef}]%`,
+    ]
+  );
+  assert(campnicStored.rows.length === 2, "campnic database row count mismatch");
+  const generalRow = campnicStored.rows.find((row) => row.user_type === "일반");
+  const yasugyoRow = campnicStored.rows.find((row) => row.user_type === "야수교");
+  assert(generalRow?.category === "캠프닉2부", "general campnic session mismatch");
+  assert(generalRow?.memo.includes("16시~21시"), "general usage time missing");
+  assert(yasugyoRow?.category === "캠프닉1부", "yasugyo session mismatch");
+  assert(yasugyoRow?.memo.includes("야수교"), "yasugyo memo missing");
+  assert(yasugyoRow?.memo.includes("10시~18시"), "yasugyo usage time missing");
+  assert(
+    campnicStored.rows.every(
+      (row) => row.type === "campnic" && row.nights === 0 && row.source === "phone"
+    ),
+    "campnic core fields mismatch"
+  );
+
   process.stdout.write(
     JSON.stringify(
       {
@@ -122,6 +212,12 @@ try {
         source: "phone",
         peopleCount: 99,
         specialRequestStored: true,
+        generalCampnicSession: "캠프닉2부",
+        generalCampnicUsageTimeStored: true,
+        yasugyoSession: "캠프닉1부",
+        yasugyoUserTypeAndMemoStored: true,
+        campnicCapacityLimit: 6,
+        seventhCampnicRejected: true,
       },
       null,
       2
@@ -130,15 +226,15 @@ try {
 } finally {
   const deleted = await database.query(
     `DELETE FROM reservations
-      WHERE memo LIKE $1 OR memo LIKE $2`,
-    [`%${marker}%`, `%${conflictMarker}%`]
+      WHERE memo LIKE $1 OR memo LIKE $2 OR memo LIKE $3`,
+    [`%${marker}%`, `%${conflictMarker}%`, `%${markerPrefix}%`]
   );
   deletedRows = deleted.rowCount ?? 0;
   const remaining = await database.query(
     `SELECT COUNT(*)::int AS count
        FROM reservations
-      WHERE memo LIKE $1 OR memo LIKE $2`,
-    [`%${marker}%`, `%${conflictMarker}%`]
+      WHERE memo LIKE $1 OR memo LIKE $2 OR memo LIKE $3`,
+    [`%${marker}%`, `%${conflictMarker}%`, `%${markerPrefix}%`]
   );
   await database.end();
   process.stdout.write(
