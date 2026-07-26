@@ -34,6 +34,7 @@ const baseReservation = {
   contactName: "게스트 991220 연동테스트",
   peopleCount: 99,
   totalAmount: 800000,
+  extraAmount: 25000,
   depositDate: "2099-12-01",
   rawSummary: "요청사항: 바베큐 서비스 운영 연동 테스트",
   calendarMemo: "바베큐 서비스와 추가 침구 준비",
@@ -110,6 +111,16 @@ try {
   const duplicate = await request("/api/mobile/reservations", baseReservation);
   assert(duplicate.status === 200, `duplicate HTTP ${duplicate.status}`);
   assert(duplicate.data.duplicate === true, "duplicate was not detected");
+
+  const auditSnapshot = await request("/api/mobile/reservations/audit", {
+    from: "2099-12-20",
+    to: "2099-12-21",
+  });
+  assert(auditSnapshot.status === 200, `audit snapshot HTTP ${auditSnapshot.status}`);
+  const auditedRows = auditSnapshot.data.reservations?.filter(
+    (row) => row.sourceRef === sourceRef
+  );
+  assert(auditedRows?.length === 2, "audit endpoint did not return the created rooms");
 
   const overlapping = {
     ...baseReservation,
@@ -192,7 +203,7 @@ try {
   );
 
   const stored = await database.query(
-    `SELECT category, source, people_count, total_amount, memo,
+    `SELECT category, source, people_count, total_amount, extra_amount, memo,
             to_char(use_date, 'YYYY-MM-DD HH24:MI:SS') AS stored_use_date
        FROM reservations
       WHERE memo LIKE $1
@@ -213,6 +224,11 @@ try {
     stored.rows.find((row) => row.category === "201호")?.total_amount === 800000 &&
       stored.rows.filter((row) => row.category !== "201호").every((row) => row.total_amount === 0),
     "total amount was not assigned only to room 201"
+  );
+  assert(
+    stored.rows.find((row) => row.category === "201호")?.extra_amount === 25000 &&
+      stored.rows.filter((row) => row.category !== "201호").every((row) => row.extra_amount === 0),
+    "extra amount was not assigned only to room 201"
   );
   assert(
     stored.rows.every((row) => row.memo.includes("바베큐 서비스")),
@@ -261,6 +277,8 @@ try {
         specialRequestStored: true,
         calendarDateStoredAtMidnight: true,
         amountAssignedOnlyToRoom201: true,
+        extraAmountAssignedOnlyToRoom201: true,
+        auditEndpointRows: auditedRows.length,
         editableCalendarMemoStored: true,
         checkoutBoundaryAvailable: true,
         twoNightOverlapDetected: true,

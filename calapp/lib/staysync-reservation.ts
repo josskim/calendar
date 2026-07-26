@@ -18,6 +18,7 @@ export type StaySyncReservationInput = {
   contactName: string;
   peopleCount: number;
   totalAmount: number;
+  extraAmount: number;
   depositDate: string;
   rawSummary: string;
   calendarMemo: string;
@@ -58,6 +59,7 @@ export function validateStaySyncInput(value: unknown): {
   const nights = Number(body.nights);
   const peopleCount = Number(body.peopleCount);
   const totalAmount = Number(body.totalAmount);
+  const extraAmount = Number(body.extraAmount ?? 0);
   const depositDate = String(body.depositDate ?? "").trim() || startDate;
   const force = body.force === true;
 
@@ -106,6 +108,9 @@ export function validateStaySyncInput(value: unknown): {
   if (!Number.isInteger(totalAmount) || totalAmount < 0) {
     return { error: "totalAmount is invalid" };
   }
+  if (!Number.isInteger(extraAmount) || extraAmount < 0) {
+    return { error: "extraAmount is invalid" };
+  }
   if (force && !overrideReason) {
     return { error: "overrideReason is required for forced registration" };
   }
@@ -122,6 +127,7 @@ export function validateStaySyncInput(value: unknown): {
       contactName,
       peopleCount,
       totalAmount,
+      extraAmount,
       depositDate,
       rawSummary,
       calendarMemo,
@@ -258,7 +264,7 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
               people_count: input.peopleCount,
               user_type: input.userType,
               total_amount: room === chargedCategory ? input.totalAmount : 0,
-              extra_amount: 0,
+              extra_amount: room === chargedCategory ? input.extraAmount : 0,
               payment_status: "confirmed",
               deposit_date: depositDate,
               cancel_date: depositDate,

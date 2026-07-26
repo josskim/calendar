@@ -30,6 +30,7 @@ Content-Type: application/json
   "contactName": "게스트 260821 독채",
   "peopleCount": 2,
   "totalAmount": 800000,
+  "extraAmount": 0,
   "depositDate": "2026-07-20",
   "rawSummary": "사용자가 확인한 문자 요약"
 }
@@ -61,3 +62,21 @@ Content-Type: application/json
 캠프닉은 `캠프닉1부`, `캠프닉2부`를 지원하며 같은 날짜·같은 부가 6팀이면
 `CAMPNIC_CAPACITY_FULL`과 HTTP 409를 반환합니다. 야수교 캠프닉은
 `캠프닉1부`만 허용하고 `userType`과 메모에 `야수교`를 저장합니다.
+
+펜션에서 여러 객실을 동시에 등록하면 총 금액과 추가금은 `201호`가 포함된
+경우 201호에만 저장하며 나머지 객실은 0원으로 저장합니다.
+
+## 미래 예약 검증 자료
+
+`POST /api/mobile/reservations/audit`
+
+```json
+{
+  "from": "2026-07-26",
+  "to": "2028-07-26"
+}
+```
+
+취소되지 않은 예약의 날짜, 숙박 수, 객실, 예약자, 연락처, 금액과 StaySync
+`sourceRef`를 반환합니다. StaySync의 수동 검증 페이지에서만 사용하는 읽기
+전용 API이며 이 요청으로 예약 데이터는 변경되지 않습니다.
