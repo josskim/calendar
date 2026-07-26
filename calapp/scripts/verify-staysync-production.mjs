@@ -151,6 +151,7 @@ try {
     rooms: ["캠프닉2부"],
     guestName: "StaySync캠프닉일반테스트",
     totalAmount: 80000,
+    source: "naver",
     userType: "일반",
     usageTime: "16시~21시",
     rawSummary: "캠프닉 일반 2부 운영 연동 테스트",
@@ -164,6 +165,7 @@ try {
     startDate: "2099-12-23",
     rooms: ["캠프닉1부"],
     guestName: "StaySync야수교테스트",
+    source: "phone",
     userType: "야수교",
     usageTime: "10시~18시",
     rawSummary: "캠프닉 야수교 종일 운영 연동 테스트",
@@ -254,6 +256,7 @@ try {
   const generalRow = campnicStored.rows.find((row) => row.user_type === "일반");
   const yasugyoRow = campnicStored.rows.find((row) => row.user_type === "야수교");
   assert(generalRow?.category === "캠프닉2부", "general campnic session mismatch");
+  assert(generalRow?.source === "naver", "manual reservation source was not stored");
   assert(generalRow?.memo.includes("16시~21시"), "general usage time missing");
   assert(yasugyoRow?.category === "캠프닉1부", "yasugyo session mismatch");
   assert(yasugyoRow?.memo.includes("야수교"), "yasugyo memo missing");
@@ -285,6 +288,7 @@ try {
         twoNightOverlapDetected: true,
         generalCampnicSession: "캠프닉2부",
         generalCampnicUsageTimeStored: true,
+        manualReservationSourceStored: true,
         yasugyoSession: "캠프닉1부",
         yasugyoUserTypeAndMemoStored: true,
         campnicCapacityLimit: 6,
