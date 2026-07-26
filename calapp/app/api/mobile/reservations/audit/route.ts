@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       source: row.source,
       memo: row.memo,
       sourceRef: row.memo.match(STAYSYNC_MARKER)?.[1] ?? "",
+      syncVerifiedAt: row.sync_verified_at?.toISOString() ?? "",
     })),
   });
 }

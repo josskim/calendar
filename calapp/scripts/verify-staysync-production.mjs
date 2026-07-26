@@ -123,6 +123,24 @@ try {
   );
   assert(auditedRows?.length === 2, "audit endpoint did not return the created rooms");
 
+  const verified = await request("/api/mobile/reservations/audit/verify", {
+    reservationIds: auditedRows.map((row) => row.id),
+  });
+  assert(verified.status === 200, `audit verify HTTP ${verified.status}`);
+  assert(verified.data.success === true, "audit verification was not stored");
+
+  const verifiedSnapshot = await request("/api/mobile/reservations/audit", {
+    from: "2099-12-20",
+    to: "2099-12-21",
+  });
+  const verifiedRows = verifiedSnapshot.data.reservations?.filter(
+    (row) => row.sourceRef === sourceRef
+  );
+  assert(
+    verifiedRows?.length === 2 && verifiedRows.every((row) => row.syncVerifiedAt),
+    "audit verification timestamp was not returned for every room"
+  );
+
   const overlapping = {
     ...baseReservation,
     sourceRef: conflictSourceRef,
@@ -206,7 +224,7 @@ try {
   );
 
   const stored = await database.query(
-    `SELECT category, source, people_count, total_amount, extra_amount, memo,
+    `SELECT category, source, people_count, total_amount, extra_amount, memo, sync_verified_at,
             to_char(use_date, 'YYYY-MM-DD HH24:MI:SS') AS stored_use_date
        FROM reservations
       WHERE memo LIKE $1
@@ -240,6 +258,10 @@ try {
   assert(
     stored.rows.every((row) => row.memo.includes("추가 침구 준비")),
     "editable calendar memo is missing"
+  );
+  assert(
+    stored.rows.every((row) => row.sync_verified_at),
+    "sync verification badge timestamp is missing"
   );
 
   const campnicStored = await database.query(
@@ -281,6 +303,7 @@ try {
         amountAssignedOnlyToRoom201: true,
         extraAmountAssignedOnlyToRoom201: true,
         auditEndpointRows: auditedRows.length,
+        auditVerificationRows: verifiedRows.length,
         editableCalendarMemoStored: true,
         checkoutBoundaryAvailable: true,
         twoNightOverlapDetected: true,

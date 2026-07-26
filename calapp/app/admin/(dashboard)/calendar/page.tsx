@@ -765,10 +765,19 @@ function CalendarContent() {
                               e.stopPropagation();
                               openModal(cell.iso, slot.label, reservation);
                             }}
-                            className={`${btnClass} w-full flex items-center px-1.5 py-0.5 min-h-[20px] overflow-hidden gap-1`}
+                            className={`${btnClass} relative w-full flex items-center px-1.5 py-0.5 min-h-[20px] overflow-hidden gap-1`}
                             title={isCompleted ? (isCampnic ? "예약 마감" : "예약 완료") : undefined}
                           >
                             <span className="truncate shrink-0 text-[10px] sm:text-[11px] font-black text-left">{slot.label}</span>
+
+                            {reservation?.sync_verified_at && (
+                              <span
+                                className="absolute top-0.5 right-0.5 rounded bg-emerald-100 px-1 text-[7px] font-black leading-3 tracking-tight text-emerald-700 shadow-sm dark:bg-emerald-950/80 dark:text-emerald-200"
+                                title="StaySync 검증 완료"
+                              >
+                                SYNC
+                              </span>
+                            )}
 
                             {isCampnic ? (
                               <span className={`text-[9px] ml-auto shrink-0 tabular-nums ${count >= 6 || count > 0 ? "text-white/90" : "text-slate-400"}`}>
@@ -776,7 +785,7 @@ function CalendarContent() {
                               </span>
                             ) : (
                               reservation && (
-                                <div className="flex items-center gap-1 text-[9px] opacity-90 truncate flex-1 justify-end min-w-0">
+                                <div className={`flex items-center gap-1 text-[9px] opacity-90 truncate flex-1 justify-end min-w-0 ${reservation.sync_verified_at ? "pr-7" : ""}`}>
                                   <span className="truncate font-medium">
                                     {reservation.guest_name}({reservation.people_count})
                                   </span>
