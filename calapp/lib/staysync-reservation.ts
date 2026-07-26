@@ -20,6 +20,7 @@ export type StaySyncReservationInput = {
   totalAmount: number;
   depositDate: string;
   rawSummary: string;
+  calendarMemo: string;
   userType: "일반" | "야수교";
   usageTime: string;
   force?: boolean;
@@ -43,6 +44,7 @@ export function validateStaySyncInput(value: unknown): {
   const phone = String(body.phone ?? "").replace(/\D/g, "");
   const contactName = String(body.contactName ?? "").trim();
   const rawSummary = String(body.rawSummary ?? "").trim().slice(0, 2000);
+  const calendarMemo = String(body.calendarMemo ?? "").trim().slice(0, 1000);
   const userType = String(body.userType ?? "일반").trim();
   const usageTime = String(body.usageTime ?? "").trim().slice(0, 100);
   const overrideReason = String(body.overrideReason ?? "").trim().slice(0, 300);
@@ -122,6 +124,7 @@ export function validateStaySyncInput(value: unknown): {
       totalAmount,
       depositDate,
       rawSummary,
+      calendarMemo,
       userType,
       usageTime,
       force,
@@ -207,6 +210,7 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
     input.usageTime ? `이용시간: ${input.usageTime}` : "",
     input.userType === "야수교" ? "야수교" : "",
     input.contactName ? `휴대폰 연락처: ${input.contactName}` : "",
+    input.calendarMemo ? `추가 메모: ${input.calendarMemo}` : "",
     input.rawSummary ? `문자 요약: ${input.rawSummary}` : "",
     input.force ? `오버부킹 강제등록 사유: ${input.overrideReason}` : "",
   ].filter(Boolean);

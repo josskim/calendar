@@ -62,16 +62,21 @@ export function findReservationConflicts(
 ): ReservationConflict[] {
   return rows
     .filter((row) => {
-      const existingEnd = addNights(row.use_date, Math.max(1, row.nights));
-      return overlaps(row.use_date, existingEnd, requestedStart, requestedEnd);
+      // Legacy/admin reservations can be stored at UTC midnight while StaySync
+      // reservations are stored at KST midnight. Treat both as calendar dates so
+      // checkout day and the next guest's check-in day never overlap.
+      const existingStart = parseKstDate(toKstDate(row.use_date));
+      const existingEnd = addNights(existingStart, Math.max(1, row.nights));
+      return overlaps(existingStart, existingEnd, requestedStart, requestedEnd);
     })
     .map((row) => {
       const nights = Math.max(1, row.nights);
+      const existingStart = parseKstDate(toKstDate(row.use_date));
       return {
         id: row.id.toString(),
         category: row.category,
-        startDate: toKstDate(row.use_date),
-        endDate: toKstDate(addNights(row.use_date, nights)),
+        startDate: toKstDate(existingStart),
+        endDate: toKstDate(addNights(existingStart, nights)),
         nights,
         guestName: row.guest_name,
         phone: row.phone,

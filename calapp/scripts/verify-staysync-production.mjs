@@ -36,6 +36,7 @@ const baseReservation = {
   totalAmount: 800000,
   depositDate: "2099-12-01",
   rawSummary: "요청사항: 바베큐 서비스 운영 연동 테스트",
+  calendarMemo: "바베큐 서비스와 추가 침구 준비",
   userType: "일반",
   usageTime: "",
 };
@@ -62,6 +63,38 @@ await database.connect();
 let deletedRows = 0;
 
 try {
+  await database.query(
+    `INSERT INTO reservations
+      (type, category, use_date, nights, quantity, guest_name, phone,
+       people_count, user_type, total_amount, extra_amount, payment_status,
+       deposit_date, cancel_date, source, memo, updated_at)
+     VALUES
+      ('pension', '101호', '2099-12-26T00:00:00Z', 1, 1,
+       'StaySync 날짜경계테스트', '01000000000', 2, '일반', 0, 0,
+       'confirmed', '2099-12-01T00:00:00Z', '2099-12-01T00:00:00Z',
+       'phone', $1, NOW())`,
+    [`${markerPrefix}_date_boundary]`]
+  );
+  const checkoutBoundary = await request("/api/mobile/reservations/check", {
+    ...baseReservation,
+    sourceRef: `${sourceRef}_boundary_next_day`,
+    startDate: "2099-12-27",
+    nights: 1,
+    rooms: ["101호"],
+  });
+  assert(checkoutBoundary.status === 200, `boundary check HTTP ${checkoutBoundary.status}`);
+  assert(checkoutBoundary.data.available === true, "checkout day was treated as overlap");
+
+  const twoNightBoundary = await request("/api/mobile/reservations/check", {
+    ...baseReservation,
+    sourceRef: `${sourceRef}_boundary_two_nights`,
+    startDate: "2099-12-26",
+    nights: 2,
+    rooms: ["101호"],
+  });
+  assert(twoNightBoundary.status === 200, `two-night boundary HTTP ${twoNightBoundary.status}`);
+  assert(twoNightBoundary.data.available === false, "real two-night overlap was not detected");
+
   const initialCheck = await request(
     "/api/mobile/reservations/check",
     baseReservation
@@ -175,6 +208,10 @@ try {
     stored.rows.every((row) => row.memo.includes("바베큐 서비스")),
     "special request is missing from memo"
   );
+  assert(
+    stored.rows.every((row) => row.memo.includes("추가 침구 준비")),
+    "editable calendar memo is missing"
+  );
 
   const campnicStored = await database.query(
     `SELECT category, type, nights, user_type, source, memo
@@ -212,6 +249,9 @@ try {
         source: "phone",
         peopleCount: 99,
         specialRequestStored: true,
+        editableCalendarMemoStored: true,
+        checkoutBoundaryAvailable: true,
+        twoNightOverlapDetected: true,
         generalCampnicSession: "캠프닉2부",
         generalCampnicUsageTimeStored: true,
         yasugyoSession: "캠프닉1부",
