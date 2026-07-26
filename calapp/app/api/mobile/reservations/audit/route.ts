@@ -41,8 +41,11 @@ export async function POST(req: NextRequest) {
       phone: row.phone,
       peopleCount: row.people_count,
       totalAmount: row.total_amount,
+      extraAmount: row.extra_amount,
       paymentStatus: row.payment_status,
+      depositDate: row.deposit_date?.toISOString().slice(0, 10) ?? "",
       source: row.source,
+      memo: row.memo,
       sourceRef: row.memo.match(STAYSYNC_MARKER)?.[1] ?? "",
     })),
   });

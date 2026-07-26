@@ -19,6 +19,7 @@ export type StaySyncReservationInput = {
   peopleCount: number;
   totalAmount: number;
   extraAmount: number;
+  source: "phone" | "naver" | "nol" | "here" | "airbnb" | "other";
   depositDate: string;
   rawSummary: string;
   calendarMemo: string;
@@ -30,6 +31,7 @@ export type StaySyncReservationInput = {
 
 const PENSION_ROOMS = new Set(["101호", "201호", "202호"]);
 const CAMPNIC_SESSIONS = new Set(["캠프닉1부", "캠프닉2부"]);
+const RESERVATION_SOURCES = new Set(["phone", "naver", "nol", "here", "airbnb", "other"]);
 
 export function validateStaySyncInput(value: unknown): {
   data?: StaySyncReservationInput;
@@ -60,6 +62,7 @@ export function validateStaySyncInput(value: unknown): {
   const peopleCount = Number(body.peopleCount);
   const totalAmount = Number(body.totalAmount);
   const extraAmount = Number(body.extraAmount ?? 0);
+  const source = String(body.source ?? "phone").trim();
   const depositDate = String(body.depositDate ?? "").trim() || startDate;
   const force = body.force === true;
 
@@ -111,6 +114,9 @@ export function validateStaySyncInput(value: unknown): {
   if (!Number.isInteger(extraAmount) || extraAmount < 0) {
     return { error: "extraAmount is invalid" };
   }
+  if (!RESERVATION_SOURCES.has(source)) {
+    return { error: "source is invalid" };
+  }
   if (force && !overrideReason) {
     return { error: "overrideReason is required for forced registration" };
   }
@@ -128,6 +134,7 @@ export function validateStaySyncInput(value: unknown): {
       peopleCount,
       totalAmount,
       extraAmount,
+      source: source as StaySyncReservationInput["source"],
       depositDate,
       rawSummary,
       calendarMemo,
@@ -268,7 +275,7 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
               payment_status: "confirmed",
               deposit_date: depositDate,
               cancel_date: depositDate,
-              source: "phone",
+              source: input.source,
               memo: memoParts.join("\n"),
             },
           })

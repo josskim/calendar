@@ -35,6 +35,7 @@ const baseReservation = {
   peopleCount: 99,
   totalAmount: 800000,
   extraAmount: 25000,
+  source: "phone",
   depositDate: "2099-12-01",
   rawSummary: "요청사항: 바베큐 서비스 운영 연동 테스트",
   calendarMemo: "바베큐 서비스와 추가 침구 준비",

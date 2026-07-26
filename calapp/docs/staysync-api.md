@@ -31,6 +31,7 @@ Content-Type: application/json
   "peopleCount": 2,
   "totalAmount": 800000,
   "extraAmount": 0,
+  "source": "phone",
   "depositDate": "2026-07-20",
   "rawSummary": "사용자가 확인한 문자 요약"
 }
@@ -77,6 +78,9 @@ Content-Type: application/json
 }
 ```
 
-취소되지 않은 예약의 날짜, 숙박 수, 객실, 예약자, 연락처, 금액과 StaySync
-`sourceRef`를 반환합니다. StaySync의 수동 검증 페이지에서만 사용하는 읽기
-전용 API이며 이 요청으로 예약 데이터는 변경되지 않습니다.
+`source`는 `phone`, `naver`, `nol`, `here`, `airbnb`, `other` 중 하나입니다.
+
+취소되지 않은 예약의 날짜, 숙박 수, 객실, 예약자, 연락처, 인원, 금액·추가금,
+접수경로, 입금일, 실제 캘린더 메모와 StaySync `sourceRef`를 반환합니다. StaySync의
+수동 검증 페이지에서만 사용하는 읽기 전용 API이며 이 요청으로 예약 데이터는
+변경되지 않습니다.
