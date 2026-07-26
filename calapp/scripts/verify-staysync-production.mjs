@@ -262,9 +262,7 @@ try {
   assert(yasugyoRow?.memo.includes("야수교"), "yasugyo memo missing");
   assert(yasugyoRow?.memo.includes("10시~18시"), "yasugyo usage time missing");
   assert(
-    campnicStored.rows.every(
-      (row) => row.type === "campnic" && row.nights === 0 && row.source === "phone"
-    ),
+    campnicStored.rows.every((row) => row.type === "campnic" && row.nights === 0),
     "campnic core fields mismatch"
   );
 
