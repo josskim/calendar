@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         cancel_date: r.cancel_date.toISOString(),
         source: r.source,
         memo: r.memo,
+        is_staysync: r.memo.includes("[StaySync:"),
         sync_verified_at: r.sync_verified_at?.toISOString() ?? null,
       }))
     );

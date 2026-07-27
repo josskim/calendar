@@ -747,6 +747,12 @@ function CalendarContent() {
                           reservation = list.find((r) => r.category === "201호+202호" && r.payment_status !== "cancelled");
                         }
 
+                        const hasStaySyncRegistration =
+                          cellReservations.some((r) => r.is_staysync) || Boolean(reservation?.is_staysync);
+                        const hasSyncBadge = hasStaySyncRegistration ||
+                          cellReservations.some((r) => r.sync_verified_at) ||
+                          Boolean(reservation?.sync_verified_at);
+
                         const isCompleted = isCampnic ? count >= 6 : !!reservation;
                         let btnClass = isCompleted ? "res-btn-primary" : "res-btn-secondary";
                         if (isCampnic) {
@@ -770,10 +776,10 @@ function CalendarContent() {
                           >
                             <span className="truncate shrink-0 text-[10px] sm:text-[11px] font-black text-left">{slot.label}</span>
 
-                            {reservation?.sync_verified_at && (
+                            {hasSyncBadge && (
                               <span
-                                className="absolute top-0.5 right-0.5 rounded bg-emerald-100 px-1 text-[7px] font-black leading-3 tracking-tight text-emerald-700 shadow-sm dark:bg-emerald-950/80 dark:text-emerald-200"
-                                title="StaySync 검증 완료"
+                                className="shrink-0 rounded bg-emerald-100 px-1 text-[7px] font-black leading-3 tracking-tight text-emerald-700 shadow-sm dark:bg-emerald-950/80 dark:text-emerald-200"
+                                title={hasStaySyncRegistration ? "StaySync 등록" : "StaySync 검증 완료"}
                               >
                                 SYNC
                               </span>
@@ -785,7 +791,7 @@ function CalendarContent() {
                               </span>
                             ) : (
                               reservation && (
-                                <div className={`flex items-center gap-1 text-[9px] opacity-90 truncate flex-1 justify-end min-w-0 ${reservation.sync_verified_at ? "pr-7" : ""}`}>
+                                <div className="flex items-center gap-1 text-[9px] opacity-90 truncate flex-1 justify-end min-w-0">
                                   <span className="truncate font-medium">
                                     {reservation.guest_name}({reservation.people_count})
                                   </span>
