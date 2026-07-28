@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const from = String(body?.from ?? "");
   const to = String(body?.to ?? "");
+  const includeCancelled = body?.includeCancelled === true;
   if (!DATE_PATTERN.test(from) || !DATE_PATTERN.test(to) || from > to) {
     return NextResponse.json({ error: "from and to must be valid YYYY-MM-DD dates" }, { status: 400 });
   }
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   const rows = await prisma.reservation.findMany({
     where: {
       use_date: { gte: fromDate, lte: toDate },
-      payment_status: { not: "cancelled" },
+      ...(includeCancelled ? {} : { payment_status: { not: "cancelled" } }),
     },
     orderBy: [{ use_date: "asc" }, { id: "asc" }],
     take: 2000,
