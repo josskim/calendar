@@ -6,6 +6,12 @@ import {
   parseKstDate,
   type ReservationConflict,
 } from "@/lib/reservation-overlap";
+import {
+  enqueueInventoryEvent,
+  INVENTORY_EVENT_TYPES,
+  newBookingGroupId,
+  snapshotReservation,
+} from "@/lib/inventory-events";
 
 export type StaySyncReservationInput = {
   reservationType: "pension" | "campnic";
@@ -252,6 +258,7 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
         return { conflicts };
       }
 
+      const bookingGroupId = newBookingGroupId();
       const created = [];
       const chargedCategory =
         input.reservationType === "pension" && input.rooms.includes("201호")
@@ -277,10 +284,20 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
               cancel_date: depositDate,
               source: input.source,
               memo: memoParts.join("\n"),
+              booking_group_id: bookingGroupId,
+              external_ref: input.sourceRef,
             },
           })
         );
       }
+
+      await enqueueInventoryEvent(tx, {
+        eventType: INVENTORY_EVENT_TYPES.created,
+        bookingGroupId,
+        reservationVersion: 1,
+        after: created.map(snapshotReservation),
+        reason: "staysync",
+      });
 
       return {
         duplicate: false,
