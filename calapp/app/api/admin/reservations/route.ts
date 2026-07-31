@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  enqueueInventoryEvent,
+  eventTypeForStatusChange,
+  INVENTORY_EVENT_TYPES,
+  newBookingGroupId,
+  snapshotReservation,
+} from "@/lib/inventory-events";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -136,25 +143,37 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const created = await prisma.reservation.create({
-    data: {
-      type,
-      category,
-      use_date: useDate,
-      nights,
-      quantity,
-      guest_name,
-      phone,
-      people_count,
-      user_type,
-      total_amount,
-      extra_amount,
-      payment_status,
-      deposit_date: depositDate,
-      cancel_date: cancelDate,
-      source,
-      memo,
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    const bookingGroupId = newBookingGroupId();
+    const row = await tx.reservation.create({
+      data: {
+        type,
+        category,
+        use_date: useDate,
+        nights,
+        quantity,
+        guest_name,
+        phone,
+        people_count,
+        user_type,
+        total_amount,
+        extra_amount,
+        payment_status,
+        deposit_date: depositDate,
+        cancel_date: cancelDate,
+        source,
+        memo,
+        booking_group_id: bookingGroupId,
+      },
+    });
+    await enqueueInventoryEvent(tx, {
+      eventType: INVENTORY_EVENT_TYPES.created,
+      bookingGroupId,
+      reservationVersion: row.sync_version,
+      after: [snapshotReservation(row)],
+      reason: "admin",
+    });
+    return row;
   });
 
   return NextResponse.json({
@@ -254,9 +273,32 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const updated = await prisma.reservation.update({
-      where: { id: BigInt(id) },
-      data: updateData,
+    const updated = await prisma.$transaction(async (tx) => {
+      const before = await tx.reservation.findUnique({
+        where: { id: BigInt(id) },
+      });
+      if (!before) throw new Error("Reservation not found");
+      const bookingGroupId = before.booking_group_id ?? newBookingGroupId();
+      const row = await tx.reservation.update({
+        where: { id: BigInt(id) },
+        data: {
+          ...updateData,
+          booking_group_id: bookingGroupId,
+          sync_version: { increment: 1 },
+        },
+      });
+      await enqueueInventoryEvent(tx, {
+        eventType: eventTypeForStatusChange(
+          before.payment_status,
+          row.payment_status
+        ),
+        bookingGroupId,
+        reservationVersion: row.sync_version,
+        before: [snapshotReservation(before)],
+        after: [snapshotReservation(row)],
+        reason: "admin",
+      });
+      return row;
     });
 
     return NextResponse.json({
