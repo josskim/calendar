@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         },
       });
     }
-  });
+  }, { timeout: 60_000 });
 
   const grouped = await prisma.inventory_audit_check.groupBy({
     by: ["severity"],
