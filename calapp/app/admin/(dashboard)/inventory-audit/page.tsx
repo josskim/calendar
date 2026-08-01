@@ -61,6 +61,7 @@ const STATE_NAMES: Record<string, string> = {
   open: "예약 가능",
   blocked_by_host: "관리자 마감",
   blocked_by_booking: "예약 완료",
+  not_on_sale: "예약이 아직 열리지 않음",
   unknown: "확인 실패",
 };
 
@@ -119,7 +120,7 @@ export default function InventoryAuditPage() {
   }, []);
 
   const startAudit = useCallback(async (range = { from, to }) => {
-    if (!window.confirm(`${range.from} ~ ${range.to} 기간을 새로 검증할까요?\n동일 기간의 완료 보고서가 있으면 기존 결과를 엽니다.`)) return;
+    if (!window.confirm(`${range.from} ~ ${range.to} 기간을 새로 검증할까요?\n동일 기간의 오류 없는 완료 보고서가 있으면 기존 결과를 엽니다.`)) return;
     setStarting(true);
     setMessage("");
     try {

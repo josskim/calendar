@@ -58,7 +58,9 @@ export async function POST(req: NextRequest) {
     where: { from_date: from, to_date: to, status: "completed" },
     orderBy: { id: "desc" },
   });
-  if (completed) {
+  // Reuse only a clean report. A completed report containing inspection
+  // errors must be runnable again after a site reader is repaired.
+  if (completed && completed.error_count === 0) {
     return NextResponse.json({
       id: completed.id.toString(),
       status: completed.status,

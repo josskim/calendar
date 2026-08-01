@@ -163,6 +163,9 @@ export function classifyAuditResult(input: {
     return { severity: "error", code: "inspection_error" };
   }
   const state = input.observedState;
+  if (input.site === "naver" && state === "not_on_sale") {
+    return { severity: "warning", code: "naver_sales_not_open" };
+  }
   const saturdayIndividualPolicy = isNaverSaturdayIndividualPolicy(
     input.site,
     input.targetDate,
@@ -215,4 +218,5 @@ export const FINDING_LABELS: Record<string, string> = {
   matched_open: "양쪽 모두 예약 가능",
   matched_naver_saturday_policy: "네이버 토요일 단독 상품 정책과 일치",
   naver_saturday_individual_open: "확인 필요: 네이버 토요일 201호·202호 단독 상품이 예약 가능",
+  naver_sales_not_open: "네이버 예약이 아직 열리지 않음",
 };
