@@ -3,6 +3,17 @@ import { isCancelledStatus } from "@/lib/inventory-events";
 
 export const AUDIT_SITES = ["naver", "yanolja", "goodchoice", "airbnb"] as const;
 
+export const NAVER_SATURDAY_POLICY_NOTE =
+  "토요일은 201호·202호 단독 상품을 닫고 201호+202호 묶음 상품만 판매합니다.";
+
+export function isNaverSaturdayIndividualPolicy(
+  site: string,
+  targetDate: Date,
+  product: string
+): boolean {
+  return site === "naver" && targetDate.getUTCDay() === 6 && ["201호", "202호"].includes(product);
+}
+
 type AuditTarget = { site: string; product: string };
 type AuditReservation = {
   id: bigint;
@@ -141,6 +152,8 @@ const NATIVE_SOURCE: Record<string, string> = {
 
 export function classifyAuditResult(input: {
   site: string;
+  targetDate: Date;
+  product: string;
   calendarBlocked: boolean;
   calendarSources: string[];
   observedState?: string | null;
@@ -150,6 +163,22 @@ export function classifyAuditResult(input: {
     return { severity: "error", code: "inspection_error" };
   }
   const state = input.observedState;
+  const saturdayIndividualPolicy = isNaverSaturdayIndividualPolicy(
+    input.site,
+    input.targetDate,
+    input.product
+  );
+  if (!input.calendarBlocked && saturdayIndividualPolicy) {
+    if (state === "blocked_by_host") {
+      return { severity: "normal", code: "matched_naver_saturday_policy" };
+    }
+    if (state === "open") {
+      return { severity: "warning", code: "naver_saturday_individual_open" };
+    }
+    if (state === "blocked_by_booking") {
+      return { severity: "critical", code: "external_booking_missing_calapp" };
+    }
+  }
   if (input.calendarBlocked) {
     if (state === "open") {
       return { severity: "critical", code: "calendar_reserved_site_open" };
@@ -184,4 +213,6 @@ export const FINDING_LABELS: Record<string, string> = {
   matched_native_booking: "외부 예약과 CalApp 일치",
   matched_host_block: "CalApp 예약과 사이트 차단 일치",
   matched_open: "양쪽 모두 예약 가능",
+  matched_naver_saturday_policy: "네이버 토요일 단독 상품 정책과 일치",
+  naver_saturday_individual_open: "네이버 토요일 단독 상품이 열려 있음",
 };

@@ -34,6 +34,7 @@ type Finding = {
   label: string;
   details: Record<string, unknown>;
   error?: string | null;
+  policyNote?: string | null;
 };
 
 const SITE_NAMES: Record<string, string> = {
@@ -161,6 +162,9 @@ export default function InventoryAuditPage() {
               CalApp 펜션 예약과 네이버·야놀자·여기어때·에어비앤비의 판매/예약 상태를 비교합니다.
               이 작업은 상태를 변경하지 않고 보고서만 만듭니다.
             </p>
+            <p className="mt-2 max-w-3xl rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold leading-5 text-sky-800">
+              네이버 운영 규칙: 토요일은 201호·202호 단독 상품을 닫고, 201호+202호 묶음 상품만 판매합니다.
+            </p>
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <label className="text-[11px] font-bold text-slate-500">시작일
@@ -235,6 +239,7 @@ export default function InventoryAuditPage() {
                     {finding.calendarReservations?.length > 0 && (
                       <p className="mt-2 text-xs text-slate-500">CalApp 예약: {finding.calendarReservations.map((item) => `${item.guestName}(${item.room}/${item.source})`).join(", ")}</p>
                     )}
+                    {finding.policyNote && <p className="mt-2 rounded-lg bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800">운영 정책: {finding.policyNote}</p>}
                     {finding.error && <p className="mt-2 break-all rounded-lg bg-slate-50 px-3 py-2 text-xs text-red-600">{finding.error}</p>}
                   </article>
                 ))}

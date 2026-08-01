@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Invalid audit id" }, { status: 400 });
   }
   const body = (await req.json().catch(() => null)) as { results?: Array<Record<string, unknown>> } | null;
-  const results = Array.isArray(body?.results) ? body.results.slice(0, 8) : [];
+  const results = Array.isArray(body?.results) ? body.results.slice(0, 150) : [];
   if (!results.length) return NextResponse.json({ error: "results are required" }, { status: 400 });
 
   await prisma.$transaction(async (tx) => {
@@ -31,6 +31,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
         : [];
       const classified = classifyAuditResult({
         site: check.site,
+        targetDate: check.target_date,
+        product: check.product,
         calendarBlocked: check.calendar_blocked,
         calendarSources: sources,
         observedState,
