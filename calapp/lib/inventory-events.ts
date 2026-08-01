@@ -45,6 +45,7 @@ type SnapshotSource = {
 };
 
 type EventDb = Pick<Prisma.TransactionClient, "inventory_event">;
+const INVENTORY_DEBOUNCE_MS = 3 * 60 * 1000;
 
 export function newBookingGroupId(): string {
   return randomUUID();
@@ -87,11 +88,20 @@ export async function enqueueInventoryEvent(
     metadata?: Prisma.InputJsonObject;
   }
 ) {
+  const availableAt = new Date(Date.now() + INVENTORY_DEBOUNCE_MS);
   const before = input.before ?? [];
   const after = input.after ?? [];
   const reservationIds = Array.from(
     new Set([...before, ...after].map((row) => row.id))
   );
+
+  // Direct CalApp entry may save one room at a time. Every new reservation
+  // change extends the pending batch so the worker sees the final calendar
+  // state three minutes after the operator's last save.
+  await db.inventory_event.updateMany({
+    where: { status: "pending" },
+    data: { available_at: availableAt },
+  });
 
   return db.inventory_event.create({
     data: {
@@ -99,6 +109,7 @@ export async function enqueueInventoryEvent(
       booking_group_id: input.bookingGroupId,
       reservation_ids: reservationIds,
       reservation_version: input.reservationVersion,
+      available_at: availableAt,
       payload: {
         before,
         after,
