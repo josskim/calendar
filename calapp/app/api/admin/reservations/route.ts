@@ -237,9 +237,10 @@ export async function PUT(req: NextRequest) {
     updateData.cancel_date = new Date(deposit_date);
   }
 
-  // 예약 제한 체크 (본인 제외)
+  // 예약 제한 체크 (본인 제외). 취소 저장은 재고를 여는 작업이므로
+  // 다른 활성 예약과 겹치더라도 막으면 안 된다.
   const targetDate = updateData.use_date || (await prisma.reservation.findUnique({ where: { id: BigInt(id) } }))?.use_date;
-  if (targetDate) {
+  if (targetDate && payment_status !== "cancelled") {
     const startOfDay = new Date(targetDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(targetDate);
