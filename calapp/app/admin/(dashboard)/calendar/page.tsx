@@ -562,7 +562,7 @@ function CalendarContent() {
             </h2>
             <button
               type="button"
-              onClick={() => window.open("/admin/inventory-audit?autostart=1", "inventory-audit-report")}
+              onClick={() => window.open("/admin/inventory-audit", "inventory-audit-report")}
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-3.5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800"
             >
               <ShieldCheck size={16} />

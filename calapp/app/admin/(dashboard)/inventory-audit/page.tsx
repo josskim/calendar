@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, ShieldAlert, ShieldCheck, XCircle } from "lucide-react";
 
 type AuditJob = {
@@ -35,6 +35,19 @@ type Finding = {
   details: Record<string, unknown>;
   error?: string | null;
   policyNote?: string | null;
+};
+
+type SiteSummary = {
+  site: string;
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
+  total: number;
+  completed: number;
+  normal: number;
+  critical: number;
+  warning: number;
+  error: number;
+  cancelled: number;
+  errorReason?: string | null;
 };
 
 const SITE_NAMES: Record<string, string> = {
@@ -82,10 +95,10 @@ export default function InventoryAuditPage() {
   const [to, setTo] = useState(defaults.to);
   const [job, setJob] = useState<AuditJob | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
+  const [sites, setSites] = useState<SiteSummary[]>([]);
   const [recentJobs, setRecentJobs] = useState<AuditJob[]>([]);
   const [starting, setStarting] = useState(false);
   const [message, setMessage] = useState("");
-  const autoStarted = useRef(false);
 
   const loadRecent = useCallback(async () => {
     const response = await fetch("/api/admin/inventory-audits", { cache: "no-store" });
@@ -100,11 +113,13 @@ export default function InventoryAuditPage() {
     const data = await response.json();
     setJob(data.job);
     setFindings(data.findings ?? []);
+    setSites(data.sites ?? []);
     setFrom(data.job.from);
     setTo(data.job.to);
   }, []);
 
   const startAudit = useCallback(async (range = { from, to }) => {
+    if (!window.confirm(`${range.from} ~ ${range.to} 기간을 새로 검증할까요?\n동일 기간의 완료 보고서가 있으면 기존 결과를 엽니다.`)) return;
     setStarting(true);
     setMessage("");
     try {
@@ -118,12 +133,25 @@ export default function InventoryAuditPage() {
       const id = String(data.id);
       window.history.replaceState({}, "", `/admin/inventory-audit?id=${id}`);
       await loadJob(id);
+      if (data.reused) setMessage("동일 기간의 검증 완료 보고서를 불러왔습니다. 다시 검증하지 않았습니다.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "검증을 시작하지 못했습니다.");
     } finally {
       setStarting(false);
     }
   }, [from, to, loadJob]);
+
+  const cancelAudit = useCallback(async () => {
+    if (!job || !window.confirm(`검증 #${job.id}을 중지할까요?\n외부 사이트의 판매 상태는 변경되지 않습니다.`)) return;
+    const response = await fetch(`/api/admin/inventory-audits/${job.id}`, { method: "DELETE" });
+    const data = await response.json();
+    if (!response.ok) {
+      setMessage(data.error ?? "검증을 중지하지 못했습니다.");
+      return;
+    }
+    setMessage("검증을 중지했습니다. 예약 동기화 워커는 계속 실행됩니다.");
+    await loadJob(job.id);
+  }, [job, loadJob]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -133,11 +161,7 @@ export default function InventoryAuditPage() {
       return;
     }
     loadRecent();
-    if (params.get("autostart") === "1" && !autoStarted.current) {
-      autoStarted.current = true;
-      startAudit(defaults);
-    }
-  }, [defaults, loadJob, loadRecent, startAudit]);
+  }, [loadJob, loadRecent]);
 
   useEffect(() => {
     if (!job || !["pending", "processing"].includes(job.status)) return;
@@ -147,6 +171,11 @@ export default function InventoryAuditPage() {
 
   const progress = job?.totalChecks ? Math.round((job.completedChecks / job.totalChecks) * 100) : 0;
   const isRunning = job && ["pending", "processing"].includes(job.status);
+  const jobStatusLabel = job?.status === "completed"
+    ? "검증 완료"
+    : job?.status === "cancelled"
+      ? "검증 중지됨"
+      : `진행 중 ${progress}%`;
 
   return (
     <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 md:px-8">
@@ -177,6 +206,11 @@ export default function InventoryAuditPage() {
               {starting ? <RefreshCw size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
               새 검증 시작
             </button>
+            {isRunning && (
+              <button type="button" onClick={cancelAudit} className="inline-flex h-10 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700">
+                <XCircle size={16} /> 검증 중지
+              </button>
+            )}
           </div>
         </div>
         {message && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{message}</p>}
@@ -188,10 +222,10 @@ export default function InventoryAuditPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-black">검증 #{job.id} · {job.from} ~ {job.to}</p>
-                <p className="mt-1 text-xs text-slate-500">{job.status === "completed" ? "검증 완료" : "워커가 사이트 상태를 확인하고 있습니다."}</p>
+                <p className="mt-1 text-xs text-slate-500">{job.status === "completed" ? "검증 완료" : job.status === "cancelled" ? "사용자가 검증을 중지했습니다." : "워커가 사이트 상태를 확인하고 있습니다."}</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-black ${job.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                {job.status === "completed" ? "완료" : `진행 중 ${progress}%`}
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${job.status === "completed" ? "bg-emerald-100 text-emerald-700" : job.status === "cancelled" ? "bg-slate-200 text-slate-700" : "bg-amber-100 text-amber-700"}`}>
+                {jobStatusLabel}
               </span>
             </div>
             <div className="mt-4 h-3 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
@@ -206,6 +240,23 @@ export default function InventoryAuditPage() {
               <SummaryCard label="중요 확인" value={job.criticalCount} tone="border-red-200 bg-red-50 text-red-800" icon={<ShieldAlert size={18} />} />
               <SummaryCard label="마감 확인" value={job.warningCount} tone="border-amber-200 bg-amber-50 text-amber-800" icon={<AlertTriangle size={18} />} />
               <SummaryCard label="조회 오류" value={job.errorCount} tone="border-slate-200 bg-slate-50 text-slate-700" icon={<XCircle size={18} />} />
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {sites.map((site) => {
+                const failed = site.status === "failed";
+                const cancelled = site.status === "cancelled";
+                const statusLabel = failed ? "수동 확인 필요" : cancelled ? "중지됨" : site.status === "completed" ? "검증 완료" : site.status === "processing" ? "검증 중" : "대기 중";
+                return (
+                  <div key={site.site} className={`rounded-2xl border p-4 ${failed ? "border-red-300 bg-red-50" : cancelled ? "border-slate-300 bg-slate-50" : "border-emerald-200 bg-emerald-50"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <b>{SITE_NAMES[site.site] ?? site.site}</b>
+                      <span className={`rounded-full px-2 py-1 text-[11px] font-black ${failed ? "bg-red-600 text-white" : cancelled ? "bg-slate-500 text-white" : "bg-white text-emerald-700"}`}>{statusLabel}</span>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-600">완료 {site.completed.toLocaleString()} / {site.total.toLocaleString()} · 오류 {site.error.toLocaleString()}</p>
+                    {site.errorReason && <p className="mt-2 break-words rounded-lg bg-white/80 px-2.5 py-2 text-xs font-bold text-red-700">원인: {site.errorReason}</p>}
+                  </div>
+                );
+              })}
             </div>
           </section>
 

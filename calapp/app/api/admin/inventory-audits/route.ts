@@ -54,6 +54,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const completed = await prisma.inventory_audit_job.findFirst({
+    where: { from_date: from, to_date: to, status: "completed" },
+    orderBy: { id: "desc" },
+  });
+  if (completed) {
+    return NextResponse.json({
+      id: completed.id.toString(),
+      status: completed.status,
+      totalChecks: completed.total_checks,
+      reused: true,
+    });
+  }
+
   const endExclusive = new Date(to);
   endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
   const reservations = await prisma.reservation.findMany({
@@ -76,7 +89,7 @@ export async function POST(req: NextRequest) {
     return created;
   });
   return NextResponse.json(
-    { id: job.id.toString(), status: job.status, totalChecks: checks.length },
+    { id: job.id.toString(), status: job.status, totalChecks: checks.length, reused: false },
     { status: 201 }
   );
 }

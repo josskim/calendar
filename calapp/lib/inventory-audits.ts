@@ -214,5 +214,5 @@ export const FINDING_LABELS: Record<string, string> = {
   matched_host_block: "CalApp 예약과 사이트 차단 일치",
   matched_open: "양쪽 모두 예약 가능",
   matched_naver_saturday_policy: "네이버 토요일 단독 상품 정책과 일치",
-  naver_saturday_individual_open: "네이버 토요일 단독 상품이 열려 있음",
+  naver_saturday_individual_open: "확인 필요: 네이버 토요일 201호·202호 단독 상품이 예약 가능",
 };

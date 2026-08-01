@@ -18,6 +18,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
   const results = Array.isArray(body?.results) ? body.results.slice(0, 150) : [];
   if (!results.length) return NextResponse.json({ error: "results are required" }, { status: 400 });
 
+  const activeJob = await prisma.inventory_audit_job.findUnique({ where: { id: jobId } });
+  if (!activeJob) return NextResponse.json({ error: "Audit not found" }, { status: 404 });
+  if (activeJob.status === "cancelled") {
+    return NextResponse.json({ id, status: "cancelled", cancelled: true });
+  }
+
   await prisma.$transaction(async (tx) => {
     for (const result of results) {
       let checkId: bigint;
@@ -62,6 +68,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
   const completed = Object.values(counts).reduce((sum, count) => sum + Number(count), 0);
   const job = await prisma.inventory_audit_job.findUnique({ where: { id: jobId } });
   if (!job) return NextResponse.json({ error: "Audit not found" }, { status: 404 });
+  if (job.status === "cancelled") {
+    return NextResponse.json({ id, status: "cancelled", cancelled: true });
+  }
   const done = completed >= job.total_checks;
   const updated = await prisma.inventory_audit_job.update({
     where: { id: jobId },
