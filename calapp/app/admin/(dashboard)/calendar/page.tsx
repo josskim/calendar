@@ -8,7 +8,7 @@ import {
   AddIcon,
 } from "./CalIcons";
 import { ReservationModal } from "./ReservationModal";
-import { Phone, HelpCircle } from "lucide-react";
+import { Phone, HelpCircle, ShieldCheck } from "lucide-react";
 import { DEFAULT_HOLIDAYS } from "@/lib/holiday-defaults";
 
 type CellDay = {
@@ -560,6 +560,14 @@ function CalendarContent() {
             <h2 className="text-xl font-black text-slate-800 dark:text-zinc-100 tracking-tight">
               {year}년 {month}월
             </h2>
+            <button
+              type="button"
+              onClick={() => window.open("/admin/inventory-audit?autostart=1", "inventory-audit-report")}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-3.5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800"
+            >
+              <ShieldCheck size={16} />
+              오늘 이후 예약 검증
+            </button>
           </div>
         </div>
 

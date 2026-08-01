@@ -13,6 +13,7 @@ export function NavLinks({ compact = false }: NavLinksProps) {
   const navItems = [
     { name: "예약캘린더", href: "/admin/calendar" },
     { name: "예약리스트", href: "/admin/reservations" },
+    { name: "예약검증", href: "/admin/inventory-audit" },
     { name: "년도별매출", href: "/admin/sales" },
     { name: "년도별비교매출", href: "/admin/sales/comparison" },
     { name: "공휴일관리", href: "/admin/holidays" },

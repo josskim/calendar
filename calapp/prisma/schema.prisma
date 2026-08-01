@@ -57,6 +57,58 @@ model inventory_event {
   @@map("inventory_events")
 }
 
+model inventory_audit_job {
+  id               BigInt    @id @default(autoincrement())
+  from_date        DateTime  @db.Date
+  to_date          DateTime  @db.Date
+  status           String    @default("pending")
+  total_checks     Int       @default(0)
+  completed_checks Int       @default(0)
+  normal_count     Int       @default(0)
+  critical_count   Int       @default(0)
+  warning_count    Int       @default(0)
+  error_count      Int       @default(0)
+  current_target   String?
+  summary          Json?
+  started_at       DateTime?
+  completed_at     DateTime?
+  last_error       String?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  checks           inventory_audit_check[]
+
+  @@index([status, id])
+  @@map("inventory_audit_jobs")
+}
+
+model inventory_audit_check {
+  id                    BigInt    @id @default(autoincrement())
+  job_id                BigInt
+  site                  String
+  target_date           DateTime  @db.Date
+  product               String
+  calendar_blocked      Boolean
+  calendar_sources      Json
+  calendar_reservations Json
+  status                String    @default("pending")
+  observed_state        String?
+  severity              String?
+  finding_code          String?
+  observed_details      Json?
+  attempt_count         Int       @default(0)
+  claimed_at            DateTime?
+  checked_at            DateTime?
+  last_error            String?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  job                   inventory_audit_job @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  @@unique([job_id, site, target_date, product])
+  @@index([job_id, status, site, target_date])
+  @@index([job_id, severity, target_date])
+  @@map("inventory_audit_checks")
+}
+
 model admin {
   id        Int      @id @default(autoincrement())
   username  String   @unique
