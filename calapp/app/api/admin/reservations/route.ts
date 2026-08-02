@@ -167,13 +167,15 @@ export async function POST(req: NextRequest) {
         booking_group_id: bookingGroupId,
       },
     });
-    await enqueueInventoryEvent(tx, {
-      eventType: INVENTORY_EVENT_TYPES.created,
-      bookingGroupId,
-      reservationVersion: row.sync_version,
-      after: [snapshotReservation(row)],
-      reason: "admin",
-    });
+    if (row.type === "pension") {
+      await enqueueInventoryEvent(tx, {
+        eventType: INVENTORY_EVENT_TYPES.created,
+        bookingGroupId,
+        reservationVersion: row.sync_version,
+        after: [snapshotReservation(row)],
+        reason: "admin",
+      });
+    }
     return row;
   });
 

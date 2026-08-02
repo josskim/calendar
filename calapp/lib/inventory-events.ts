@@ -80,6 +80,9 @@ export function inventoryRelevantChange(
   before: InventoryReservationSnapshot,
   after: InventoryReservationSnapshot
 ): boolean {
+  if (before.type !== "pension" && after.type !== "pension") {
+    return false;
+  }
   return (
     before.type !== after.type ||
     before.category !== after.category ||

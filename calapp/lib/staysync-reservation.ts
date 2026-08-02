@@ -291,13 +291,15 @@ export async function createStaySyncReservation(input: StaySyncReservationInput)
         );
       }
 
-      await enqueueInventoryEvent(tx, {
-        eventType: INVENTORY_EVENT_TYPES.created,
-        bookingGroupId,
-        reservationVersion: 1,
-        after: created.map(snapshotReservation),
-        reason: "staysync",
-      });
+      if (input.reservationType === "pension") {
+        await enqueueInventoryEvent(tx, {
+          eventType: INVENTORY_EVENT_TYPES.created,
+          bookingGroupId,
+          reservationVersion: 1,
+          after: created.map(snapshotReservation),
+          reason: "staysync",
+        });
+      }
 
       return {
         duplicate: false,
