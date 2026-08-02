@@ -76,6 +76,19 @@ export function snapshotReservation(
   };
 }
 
+export function inventoryRelevantChange(
+  before: InventoryReservationSnapshot,
+  after: InventoryReservationSnapshot
+): boolean {
+  return (
+    before.type !== after.type ||
+    before.category !== after.category ||
+    before.useDate.slice(0, 10) !== after.useDate.slice(0, 10) ||
+    before.nights !== after.nights ||
+    isCancelledStatus(before.paymentStatus) !== isCancelledStatus(after.paymentStatus)
+  );
+}
+
 export async function enqueueInventoryEvent(
   db: EventDb,
   input: {

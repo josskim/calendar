@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   enqueueInventoryEvent,
   eventTypeForStatusChange,
+  inventoryRelevantChange,
   INVENTORY_EVENT_TYPES,
   newBookingGroupId,
   snapshotReservation,
@@ -288,17 +289,21 @@ export async function PUT(req: NextRequest) {
           sync_version: { increment: 1 },
         },
       });
-      await enqueueInventoryEvent(tx, {
-        eventType: eventTypeForStatusChange(
-          before.payment_status,
-          row.payment_status
-        ),
-        bookingGroupId,
-        reservationVersion: row.sync_version,
-        before: [snapshotReservation(before)],
-        after: [snapshotReservation(row)],
-        reason: "admin",
-      });
+      const beforeSnapshot = snapshotReservation(before);
+      const afterSnapshot = snapshotReservation(row);
+      if (inventoryRelevantChange(beforeSnapshot, afterSnapshot)) {
+        await enqueueInventoryEvent(tx, {
+          eventType: eventTypeForStatusChange(
+            before.payment_status,
+            row.payment_status
+          ),
+          bookingGroupId,
+          reservationVersion: row.sync_version,
+          before: [beforeSnapshot],
+          after: [afterSnapshot],
+          reason: "admin",
+        });
+      }
       return row;
     });
 
