@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, ShieldAlert, ShieldCheck, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, ShieldAlert, ShieldCheck, X, XCircle } from "lucide-react";
 
 type AuditJob = {
   id: string;
@@ -76,6 +76,18 @@ function defaultRange() {
   const to = new Date(from);
   to.setMonth(to.getMonth() + 5);
   return { from: isoLocal(from), to: isoLocal(to) };
+}
+
+function dateTimeText(value?: string | null): string {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function SummaryCard({ label, value, tone, icon }: { label: string; value: number; tone: string; icon: React.ReactNode }) {
@@ -154,6 +166,14 @@ export default function InventoryAuditPage() {
     await loadJob(job.id);
   }, [job, loadJob]);
 
+  const closeReport = useCallback(() => {
+    setJob(null);
+    setFindings([]);
+    setSites([]);
+    window.history.replaceState({}, "", "/admin/inventory-audit");
+    loadRecent();
+  }, [loadRecent]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
@@ -218,7 +238,18 @@ export default function InventoryAuditPage() {
       </section>
 
       {job ? (
-        <>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-2 backdrop-blur-[1px] md:p-6" role="presentation">
+          <div role="dialog" aria-modal="true" aria-label={`검증 #${job.id} 결과`} className="flex max-h-[calc(100vh-1rem)] w-full max-w-[1400px] flex-col overflow-hidden rounded-2xl bg-[#f7f7f5] shadow-2xl md:max-h-[calc(100vh-3rem)] md:rounded-3xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 md:px-6">
+              <div>
+                <p className="font-black">검증 #{job.id} 결과</p>
+                <p className="mt-0.5 text-xs text-slate-500">실행 {dateTimeText(job.createdAt)}{job.completedAt ? ` · 완료 ${dateTimeText(job.completedAt)}` : ""}</p>
+              </div>
+              <button type="button" onClick={closeReport} aria-label="검증 결과 닫기" className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3 text-sm font-black text-slate-700 hover:bg-zinc-50">
+                <X size={18} /> 닫기
+              </button>
+            </div>
+            <div className="overflow-y-auto px-3 pb-6 md:px-6">
           <section className="mt-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-7">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -298,14 +329,19 @@ export default function InventoryAuditPage() {
               </div>
             )}
           </section>
-        </>
+            </div>
+          </div>
+        </div>
       ) : (
         <section className="mt-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2"><Clock3 size={18} /><h2 className="font-black">최근 검증</h2></div>
           <div className="mt-4 space-y-2">
             {recentJobs.map((item) => (
-              <button key={item.id} type="button" onClick={() => { window.history.replaceState({}, "", `/admin/inventory-audit?id=${item.id}`); loadJob(item.id); }} className="flex w-full items-center justify-between rounded-xl border border-zinc-200 px-4 py-3 text-left hover:bg-zinc-50">
-                <span><b>#{item.id}</b> · {item.from} ~ {item.to}</span>
+              <button key={item.id} type="button" onClick={() => { window.history.replaceState({}, "", `/admin/inventory-audit?id=${item.id}`); loadJob(item.id); }} className="flex w-full flex-col gap-1 rounded-xl border border-zinc-200 px-4 py-3 text-left hover:bg-zinc-50 md:flex-row md:items-center md:justify-between">
+                <span>
+                  <b>#{item.id}</b> · {item.from} ~ {item.to}
+                  <span className="mt-1 block text-xs font-medium text-slate-500">실행 {dateTimeText(item.createdAt)}{item.completedAt ? ` · 완료 ${dateTimeText(item.completedAt)}` : ""}</span>
+                </span>
                 <span className="text-xs font-bold text-slate-500">중요 {item.criticalCount} · 확인 {item.warningCount} · 오류 {item.errorCount}</span>
               </button>
             ))}
