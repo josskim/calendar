@@ -8,7 +8,8 @@ import {
   AddIcon,
 } from "./CalIcons";
 import { ReservationModal } from "./ReservationModal";
-import { Phone, HelpCircle, ShieldCheck } from "lucide-react";
+import { PriceCalculatorModal } from "./PriceCalculatorModal";
+import { Calculator, Phone, HelpCircle, ShieldCheck } from "lucide-react";
 import { DEFAULT_HOLIDAYS } from "@/lib/holiday-defaults";
 
 type CellDay = {
@@ -191,6 +192,7 @@ function CalendarContent() {
   const [modalDefaultCategory, setModalDefaultCategory] = useState<string | undefined>();
   const [modalSelectedReservation, setModalSelectedReservation] = useState<any | undefined>();
   const [modalDayReservations, setModalDayReservations] = useState<any[]>([]);
+  const [calculatorDate, setCalculatorDate] = useState<string | null>(null);
   const [reservationsByDate, setReservationsByDate] = useState<Record<string, any[]>>({});
   const [focusedIsoDate, setFocusedIsoDate] = useState<string | null>(null);
   const [salesDateType, setSalesDateType] = useState<"visit" | "deposit">("visit");
@@ -448,6 +450,10 @@ function CalendarContent() {
 
     return map;
   }, [holidayEntriesData]);
+  const holidayDates = useMemo(
+    () => new Set(holidayEntriesData.map((entry) => entry.date)),
+    [holidayEntriesData]
+  );
 
   const currentMonthHolidays = useMemo(() => {
     return cells
@@ -736,10 +742,26 @@ function CalendarContent() {
                           </span>
                         )}
                       </div>
-                      {cell.isToday && (
-                        <span className="bg-[#DB5461] text-white text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tight">
-                          Today
-                        </span>
+                      {!isOtherMonth && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          {cell.isToday && (
+                            <span className="hidden bg-[#DB5461] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-tight text-white rounded sm:inline-flex">
+                              Today
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setCalculatorDate(cell.iso);
+                            }}
+                            className="flex h-6 w-6 items-center justify-center rounded-full border border-rose-200 bg-white text-[#DB5461] shadow-sm transition hover:border-[#DB5461] hover:bg-rose-50 active:scale-90 dark:border-rose-900/60 dark:bg-zinc-900 dark:text-rose-300"
+                            title={`${cell.iso} 예약금액 계산`}
+                            aria-label={`${cell.iso} 예약금액 계산기 열기`}
+                          >
+                            <Calculator size={13} strokeWidth={2.5} />
+                          </button>
+                        </div>
                       )}
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -990,6 +1012,14 @@ function CalendarContent() {
         allReservations={modalDayReservations}
         onSaveSuccess={handleSaveSuccess}
       />
+      {calculatorDate && (
+        <PriceCalculatorModal
+          initialDate={calculatorDate}
+          holidayNames={holidayEntries.get(calculatorDate)?.map((holiday) => holiday.name) || []}
+          holidayDates={holidayDates}
+          onClose={() => setCalculatorDate(null)}
+        />
+      )}
     </>
   );
 }
