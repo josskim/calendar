@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { buildAuditChecks, parseAuditDate } from "@/lib/inventory-audits";
+import {
+  AUDIT_SITES,
+  type AuditSite,
+  buildAuditChecks,
+  parseAuditDate,
+} from "@/lib/inventory-audits";
 
 function dateText(value: Date): string {
   return value.toISOString().slice(0, 10);
@@ -34,6 +39,11 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const fromText = String(body?.from ?? "");
   const toText = String(body?.to ?? "");
+  const requestedSites = Array.isArray(body?.sites) ? body.sites.map(String) : [];
+  const selectedSites = AUDIT_SITES.filter((site) => requestedSites.includes(site));
+  if (!selectedSites.length || selectedSites.length !== new Set(requestedSites).size) {
+    return NextResponse.json({ error: "검증할 사이트를 하나 이상 올바르게 선택해주세요." }, { status: 400 });
+  }
   const from = parseAuditDate(fromText);
   const to = parseAuditDate(toText);
   if (!from || !to || from > to) {
@@ -54,13 +64,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const completed = await prisma.inventory_audit_job.findFirst({
+  const completedCandidates = await prisma.inventory_audit_job.findMany({
     where: { from_date: from, to_date: to, status: "completed" },
     orderBy: { id: "desc" },
+    take: 10,
   });
   // Reuse only a clean report. A completed report containing inspection
   // errors must be runnable again after a site reader is repaired.
-  if (completed && completed.error_count === 0) {
+  let completed: (typeof completedCandidates)[number] | null = null;
+  for (const candidate of completedCandidates) {
+    if (candidate.error_count !== 0) continue;
+    const candidateSites = await prisma.inventory_audit_check.findMany({
+      where: { job_id: candidate.id },
+      distinct: ["site"],
+      select: { site: true },
+    });
+    const existing = new Set(candidateSites.map((row) => row.site));
+    if (selectedSites.length === existing.size && selectedSites.every((site) => existing.has(site))) {
+      completed = candidate;
+      break;
+    }
+  }
+  if (completed) {
     return NextResponse.json({
       id: completed.id.toString(),
       status: completed.status,
@@ -80,7 +105,7 @@ export async function POST(req: NextRequest) {
     checkout.setUTCDate(checkout.getUTCDate() + Math.max(1, row.nights || 1));
     return checkout > from;
   });
-  const checks = buildAuditChecks(overlapping, from, to);
+  const checks = buildAuditChecks(overlapping, from, to, selectedSites as AuditSite[]);
   const job = await prisma.$transaction(async (tx) => {
     const created = await tx.inventory_audit_job.create({
       data: { from_date: from, to_date: to, total_checks: checks.length },

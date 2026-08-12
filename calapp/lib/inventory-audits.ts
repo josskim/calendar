@@ -2,6 +2,11 @@ import { Prisma } from "@prisma/client";
 import { isCancelledStatus } from "@/lib/inventory-events";
 
 export const AUDIT_SITES = ["naver", "yanolja", "goodchoice", "airbnb"] as const;
+export type AuditSite = (typeof AUDIT_SITES)[number];
+
+const AUDIT_SITE_ORDER = new Map<string, number>(
+  AUDIT_SITES.map((site, index) => [site, index])
+);
 
 export const NAVER_SATURDAY_POLICY_NOTE =
   "토요일은 201호·202호 단독 상품을 닫고 201호+202호 묶음 상품만 판매합니다.";
@@ -46,15 +51,19 @@ export function targetsForRoom(room: string): AuditTarget[] {
   return targets;
 }
 
-export function allTargetsForDay(): AuditTarget[] {
+export function allTargetsForDay(selectedSites: readonly AuditSite[] = AUDIT_SITES): AuditTarget[] {
+  const selected = new Set<string>(selectedSites);
   const unique = new Map<string, AuditTarget>();
   for (const room of ["101호", "201호", "202호"]) {
     for (const target of targetsForRoom(room)) {
+      if (!selected.has(target.site)) continue;
       unique.set(`${target.site}:${target.product}`, target);
     }
   }
   return [...unique.values()].sort((a, b) =>
-    `${a.site}:${a.product}`.localeCompare(`${b.site}:${b.product}`, "ko")
+    (AUDIT_SITE_ORDER.get(a.site) ?? AUDIT_SITES.length) -
+      (AUDIT_SITE_ORDER.get(b.site) ?? AUDIT_SITES.length) ||
+    a.product.localeCompare(b.product, "ko")
   );
 }
 
@@ -71,7 +80,8 @@ export function parseAuditDate(value: string): Date | null {
 export function buildAuditChecks(
   reservations: AuditReservation[],
   from: Date,
-  to: Date
+  to: Date,
+  selectedSites: readonly AuditSite[] = AUDIT_SITES
 ): Array<{
   site: string;
   target_date: Date;
@@ -91,7 +101,7 @@ export function buildAuditChecks(
       reservations: Map<string, { id: string; guestName: string; room: string; source: string }>;
     }
   >();
-  const targets = allTargetsForDay();
+  const targets = allTargetsForDay(selectedSites);
   for (let cursor = new Date(from); cursor <= to; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
     const date = new Date(cursor);
     for (const target of targets) {

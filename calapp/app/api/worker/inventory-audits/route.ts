@@ -32,7 +32,15 @@ export async function GET(req: NextRequest) {
             check_row.status = 'pending'
             OR (check_row.status = 'processing' AND check_row.claimed_at < NOW() - INTERVAL '10 minutes')
           )
-        ORDER BY job.id, check_row.site, check_row.target_date, check_row.product
+        ORDER BY job.id,
+          CASE check_row.site
+            WHEN 'naver' THEN 1
+            WHEN 'yanolja' THEN 2
+            WHEN 'goodchoice' THEN 3
+            WHEN 'airbnb' THEN 4
+            ELSE 5
+          END,
+          check_row.target_date, check_row.product
         LIMIT 1
         FOR UPDATE SKIP LOCKED
       ), candidates AS (
@@ -45,7 +53,15 @@ export async function GET(req: NextRequest) {
           check_row.status = 'pending'
           OR (check_row.status = 'processing' AND check_row.claimed_at < NOW() - INTERVAL '10 minutes')
         )
-        ORDER BY check_row.site, check_row.target_date, check_row.product
+        ORDER BY
+          CASE check_row.site
+            WHEN 'naver' THEN 1
+            WHEN 'yanolja' THEN 2
+            WHEN 'goodchoice' THEN 3
+            WHEN 'airbnb' THEN 4
+            ELSE 5
+          END,
+          check_row.target_date, check_row.product
         LIMIT ${limit}
         FOR UPDATE SKIP LOCKED
       )

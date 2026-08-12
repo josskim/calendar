@@ -87,7 +87,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       startedAt: job.started_at?.toISOString() ?? null,
       completedAt: job.completed_at?.toISOString() ?? null,
     },
-    findings: checks.map((check) => ({
+    findings: checks.map((check: (typeof checks)[number]) => ({
       id: check.id.toString(),
       date: check.target_date.toISOString().slice(0, 10),
       site: check.site,
@@ -106,7 +106,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
         : null,
       checkedAt: check.checked_at?.toISOString() ?? null,
     })),
-    sites: [...siteSummaries.values()].map((site) => ({
+    sites: [...siteSummaries.values()].sort((a, b) =>
+      ["naver", "yanolja", "goodchoice", "airbnb"].indexOf(a.site) -
+      ["naver", "yanolja", "goodchoice", "airbnb"].indexOf(b.site)
+    ).map((site) => ({
       ...site,
       status: site.error > 0
         ? "failed"

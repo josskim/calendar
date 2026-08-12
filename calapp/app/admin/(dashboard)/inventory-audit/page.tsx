@@ -57,6 +57,13 @@ const SITE_NAMES: Record<string, string> = {
   airbnb: "에어비앤비",
 };
 
+const AUDIT_SITE_OPTIONS = [
+  { value: "naver", label: "네이버" },
+  { value: "yanolja", label: "야놀자" },
+  { value: "goodchoice", label: "여기어때" },
+  { value: "airbnb", label: "에어비앤비" },
+] as const;
+
 const STATE_NAMES: Record<string, string> = {
   open: "예약 가능",
   blocked_by_host: "관리자 마감",
@@ -110,7 +117,11 @@ export default function InventoryAuditPage() {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [sites, setSites] = useState<SiteSummary[]>([]);
   const [recentJobs, setRecentJobs] = useState<AuditJob[]>([]);
+  const [selectedSites, setSelectedSites] = useState<string[]>(
+    AUDIT_SITE_OPTIONS.map((site) => site.value)
+  );
   const [starting, setStarting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [message, setMessage] = useState("");
 
   const loadRecent = useCallback(async () => {
@@ -127,19 +138,33 @@ export default function InventoryAuditPage() {
     setJob(data.job);
     setFindings(data.findings ?? []);
     setSites(data.sites ?? []);
+    if (data.sites?.length) {
+      const included = new Set<string>(data.sites.map((site: SiteSummary) => site.site));
+      setSelectedSites(
+        AUDIT_SITE_OPTIONS.map((site) => site.value).filter((site) => included.has(site))
+      );
+    }
     setFrom(data.job.from);
     setTo(data.job.to);
   }, []);
 
   const startAudit = useCallback(async (range = { from, to }) => {
-    if (!window.confirm(`${range.from} ~ ${range.to} 기간을 새로 검증할까요?\n동일 기간의 오류 없는 완료 보고서가 있으면 기존 결과를 엽니다.`)) return;
+    if (!selectedSites.length) {
+      setMessage("검증할 사이트를 하나 이상 선택해주세요.");
+      return;
+    }
+    const siteLabels = AUDIT_SITE_OPTIONS
+      .filter((site) => selectedSites.includes(site.value))
+      .map((site) => site.label)
+      .join(", ");
+    if (!window.confirm(`${range.from} ~ ${range.to} 기간을 새로 검증할까요?\n검증 사이트: ${siteLabels}\n동일 기간·동일 사이트의 오류 없는 완료 보고서가 있으면 기존 결과를 엽니다.`)) return;
     setStarting(true);
     setMessage("");
     try {
       const response = await fetch("/api/admin/inventory-audits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(range),
+        body: JSON.stringify({ ...range, sites: selectedSites }),
       });
       const data = await response.json();
       if (!response.ok && response.status !== 409) throw new Error(data.error ?? "검증 시작 실패");
@@ -152,19 +177,36 @@ export default function InventoryAuditPage() {
     } finally {
       setStarting(false);
     }
-  }, [from, to, loadJob]);
+  }, [from, to, loadJob, selectedSites]);
 
   const cancelAudit = useCallback(async () => {
     if (!job || !window.confirm(`검증 #${job.id}을 중지할까요?\n외부 사이트의 판매 상태는 변경되지 않습니다.`)) return;
-    const response = await fetch(`/api/admin/inventory-audits/${job.id}`, { method: "DELETE" });
-    const data = await response.json();
-    if (!response.ok) {
-      setMessage(data.error ?? "검증을 중지하지 못했습니다.");
-      return;
+    setCancelling(true);
+    try {
+      const response = await fetch(`/api/admin/inventory-audits/${job.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) {
+        setMessage(data.error ?? "검증을 중지하지 못했습니다.");
+        return;
+      }
+      setMessage("검증을 중지했습니다. 예약 동기화 워커는 계속 실행됩니다.");
+      await loadJob(job.id);
+    } finally {
+      setCancelling(false);
     }
-    setMessage("검증을 중지했습니다. 예약 동기화 워커는 계속 실행됩니다.");
-    await loadJob(job.id);
   }, [job, loadJob]);
+
+  const toggleSite = useCallback((site: string) => {
+    setSelectedSites((current) =>
+      current.includes(site)
+        ? current.filter((item) => item !== site)
+        : AUDIT_SITE_OPTIONS.map((item) => item.value).filter(
+            (item) => item === site || current.includes(item)
+          )
+    );
+  }, []);
+
+  const allSitesSelected = selectedSites.length === AUDIT_SITE_OPTIONS.length;
 
   const closeReport = useCallback(() => {
     setJob(null);
@@ -216,20 +258,56 @@ export default function InventoryAuditPage() {
               네이버 운영 규칙: 토요일은 201호·202호 단독 상품을 닫고, 201호+202호 묶음 상품만 판매합니다.
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="flex max-w-xl flex-wrap items-end justify-end gap-2">
+            <fieldset disabled={Boolean(isRunning)} className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-3 disabled:opacity-60">
+              <div className="flex items-center justify-between gap-3">
+                <legend className="px-1 text-[11px] font-black text-slate-600">검증 사이트</legend>
+                <label className="flex cursor-pointer items-center gap-1.5 text-xs font-black text-emerald-700">
+                  <input
+                    type="checkbox"
+                    checked={allSitesSelected}
+                    onChange={(event) => setSelectedSites(
+                      event.target.checked ? AUDIT_SITE_OPTIONS.map((site) => site.value) : []
+                    )}
+                    className="h-4 w-4 accent-emerald-700"
+                  />
+                  전체 선택
+                </label>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {AUDIT_SITE_OPTIONS.map((site) => (
+                  <label
+                    key={site.value}
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black ${
+                      selectedSites.includes(site.value)
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                        : "border-zinc-200 bg-white text-slate-500"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSites.includes(site.value)}
+                      onChange={() => toggleSite(site.value)}
+                      className="h-4 w-4 accent-emerald-700"
+                    />
+                    {site.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <label className="text-[11px] font-bold text-slate-500">시작일
               <input type="date" value={from} disabled={Boolean(isRunning)} onChange={(e) => setFrom(e.target.value)} className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2 text-sm text-slate-900 disabled:bg-zinc-100" />
             </label>
             <label className="text-[11px] font-bold text-slate-500">종료일
               <input type="date" value={to} disabled={Boolean(isRunning)} onChange={(e) => setTo(e.target.value)} className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2 text-sm text-slate-900 disabled:bg-zinc-100" />
             </label>
-            <button type="button" disabled={starting || Boolean(isRunning)} onClick={() => startAudit()} className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white disabled:bg-zinc-300">
+            <button type="button" disabled={starting || Boolean(isRunning) || selectedSites.length === 0} onClick={() => startAudit()} className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white disabled:bg-zinc-300">
               {starting ? <RefreshCw size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
               새 검증 시작
             </button>
             {isRunning && (
-              <button type="button" onClick={cancelAudit} className="inline-flex h-10 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700">
-                <XCircle size={16} /> 검증 중지
+              <button type="button" disabled={cancelling} onClick={cancelAudit} className="inline-flex h-10 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700 disabled:bg-red-300">
+                {cancelling ? <RefreshCw size={16} className="animate-spin" /> : <XCircle size={16} />} 검증 중지
               </button>
             )}
           </div>
@@ -245,9 +323,17 @@ export default function InventoryAuditPage() {
                 <p className="font-black">검증 #{job.id} 결과</p>
                 <p className="mt-0.5 text-xs text-slate-500">실행 {dateTimeText(job.createdAt)}{job.completedAt ? ` · 완료 ${dateTimeText(job.completedAt)}` : ""}</p>
               </div>
-              <button type="button" onClick={closeReport} aria-label="검증 결과 닫기" className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3 text-sm font-black text-slate-700 hover:bg-zinc-50">
-                <X size={18} /> 닫기
-              </button>
+              <div className="flex items-center gap-2">
+                {isRunning && (
+                  <button type="button" disabled={cancelling} onClick={cancelAudit} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-red-600 px-3 text-sm font-black text-white hover:bg-red-700 disabled:bg-red-300">
+                    {cancelling ? <RefreshCw size={16} className="animate-spin" /> : <XCircle size={16} />}
+                    검증 중지
+                  </button>
+                )}
+                <button type="button" onClick={closeReport} aria-label="검증 결과 닫기" className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3 text-sm font-black text-slate-700 hover:bg-zinc-50">
+                  <X size={18} /> 닫기
+                </button>
+              </div>
             </div>
             <div className="overflow-y-auto px-3 pb-6 md:px-6">
           <section className="mt-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-7">
