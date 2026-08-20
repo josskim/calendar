@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   FINDING_LABELS,
-  isNaverSaturdayIndividualPolicy,
-  NAVER_SATURDAY_POLICY_NOTE,
+  isSaturdayIndividualPolicy,
+  SATURDAY_INDIVIDUAL_POLICY_NOTE,
 } from "@/lib/inventory-audits";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -101,8 +101,8 @@ export async function GET(req: NextRequest, context: RouteContext) {
       label: FINDING_LABELS[check.finding_code ?? ""] ?? check.finding_code,
       details: check.observed_details,
       error: check.last_error,
-      policyNote: isNaverSaturdayIndividualPolicy(check.site, check.target_date, check.product)
-        ? NAVER_SATURDAY_POLICY_NOTE
+      policyNote: isSaturdayIndividualPolicy(check.site, check.target_date, check.product)
+        ? SATURDAY_INDIVIDUAL_POLICY_NOTE
         : null,
       checkedAt: check.checked_at?.toISOString() ?? null,
     })),

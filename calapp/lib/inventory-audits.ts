@@ -8,17 +8,23 @@ const AUDIT_SITE_ORDER = new Map<string, number>(
   AUDIT_SITES.map((site, index) => [site, index])
 );
 
-export const NAVER_SATURDAY_POLICY_NOTE =
-  "토요일은 201호·202호 단독 상품을 닫고 201호+202호 묶음 상품만 판매합니다.";
+export const SATURDAY_INDIVIDUAL_POLICY_NOTE =
+  "네이버·야놀자·여기어때는 토요일에 201호·202호 단독 상품을 닫고 201+202호 묶음 상품만 판매합니다.";
+
+const SATURDAY_INDIVIDUAL_POLICY_SITES = new Set(["naver", "yanolja", "goodchoice"]);
 
 const COMBINED_201_202_PRODUCT = "201+202호 (독채)";
 
-export function isNaverSaturdayIndividualPolicy(
+export function isSaturdayIndividualPolicy(
   site: string,
   targetDate: Date,
   product: string
 ): boolean {
-  return site === "naver" && targetDate.getUTCDay() === 6 && ["201호", "202호"].includes(product);
+  return (
+    SATURDAY_INDIVIDUAL_POLICY_SITES.has(site) &&
+    targetDate.getUTCDay() === 6 &&
+    ["201호", "202호"].includes(product)
+  );
 }
 
 type AuditTarget = { site: string; product: string };
@@ -180,17 +186,17 @@ export function classifyAuditResult(input: {
   if (input.site === "naver" && state === "not_on_sale") {
     return { severity: "warning", code: "naver_sales_not_open" };
   }
-  const saturdayIndividualPolicy = isNaverSaturdayIndividualPolicy(
+  const saturdayIndividualPolicy = isSaturdayIndividualPolicy(
     input.site,
     input.targetDate,
     input.product
   );
   if (!input.calendarBlocked && saturdayIndividualPolicy) {
     if (state === "blocked_by_host") {
-      return { severity: "normal", code: "matched_naver_saturday_policy" };
+      return { severity: "normal", code: "matched_saturday_individual_policy" };
     }
     if (state === "open") {
-      return { severity: "warning", code: "naver_saturday_individual_open" };
+      return { severity: "warning", code: "saturday_individual_open" };
     }
     if (state === "blocked_by_booking") {
       return { severity: "critical", code: "external_booking_missing_calapp" };
@@ -230,6 +236,8 @@ export const FINDING_LABELS: Record<string, string> = {
   matched_native_booking: "외부 예약과 CalApp 일치",
   matched_host_block: "CalApp 예약과 사이트 차단 일치",
   matched_open: "양쪽 모두 예약 가능",
+  matched_saturday_individual_policy: "토요일 단독 상품 차단 정책과 일치",
+  saturday_individual_open: "확인 필요: 토요일 201호·202호 단독 상품이 예약 가능",
   matched_naver_saturday_policy: "네이버 토요일 단독 상품 정책과 일치",
   naver_saturday_individual_open: "확인 필요: 네이버 토요일 201호·202호 단독 상품이 예약 가능",
   naver_sales_not_open: "네이버 예약이 아직 열리지 않음",

@@ -255,7 +255,7 @@ export default function InventoryAuditPage() {
               이 작업은 상태를 변경하지 않고 보고서만 만듭니다.
             </p>
             <p className="mt-2 max-w-3xl rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold leading-5 text-sky-800">
-              네이버 운영 규칙: 토요일은 201호·202호 단독 상품을 닫고, 201호+202호 묶음 상품만 판매합니다.
+              토요일 운영 규칙: 네이버·야놀자·여기어때는 201호·202호 단독 상품을 닫고, 201+202호 묶음 상품만 판매합니다.
             </p>
           </div>
           <div className="flex max-w-xl flex-wrap items-end justify-end gap-2">

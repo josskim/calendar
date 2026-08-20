@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   AUDIT_SITES,
   type AuditSite,
+  allTargetsForDay,
   buildAuditChecks,
   parseAuditDate,
 } from "@/lib/inventory-audits";
@@ -70,17 +71,28 @@ export async function POST(req: NextRequest) {
     take: 10,
   });
   // Reuse only a clean report. A completed report containing inspection
-  // errors must be runnable again after a site reader is repaired.
+  // errors or an older site/product target set must be runnable again after
+  // a site reader is repaired or inventory products are added.
   let completed: (typeof completedCandidates)[number] | null = null;
+  const expectedTargetKeys = new Set(
+    allTargetsForDay(selectedSites as AuditSite[]).map(
+      (target) => `${target.site}:${target.product}`
+    )
+  );
   for (const candidate of completedCandidates) {
     if (candidate.error_count !== 0) continue;
-    const candidateSites = await prisma.inventory_audit_check.findMany({
+    const candidateTargets = await prisma.inventory_audit_check.findMany({
       where: { job_id: candidate.id },
-      distinct: ["site"],
-      select: { site: true },
+      distinct: ["site", "product"],
+      select: { site: true, product: true },
     });
-    const existing = new Set(candidateSites.map((row) => row.site));
-    if (selectedSites.length === existing.size && selectedSites.every((site) => existing.has(site))) {
+    const existingTargetKeys = new Set(
+      candidateTargets.map((row) => `${row.site}:${row.product}`)
+    );
+    if (
+      expectedTargetKeys.size === existingTargetKeys.size &&
+      [...expectedTargetKeys].every((key) => existingTargetKeys.has(key))
+    ) {
       completed = candidate;
       break;
     }
