@@ -11,6 +11,8 @@ const AUDIT_SITE_ORDER = new Map<string, number>(
 export const NAVER_SATURDAY_POLICY_NOTE =
   "토요일은 201호·202호 단독 상품을 닫고 201호+202호 묶음 상품만 판매합니다.";
 
+const COMBINED_201_202_PRODUCT = "201+202호 (독채)";
+
 export function isNaverSaturdayIndividualPolicy(
   site: string,
   targetDate: Date,
@@ -45,6 +47,8 @@ export function targetsForRoom(room: string): AuditTarget[] {
     targets.push(
       { site: "naver", product: room },
       { site: "naver", product: "201호+202호(독채)" },
+      { site: "yanolja", product: COMBINED_201_202_PRODUCT },
+      { site: "goodchoice", product: COMBINED_201_202_PRODUCT },
       { site: "airbnb", product: "독채 (201호+202호)" }
     );
   }
