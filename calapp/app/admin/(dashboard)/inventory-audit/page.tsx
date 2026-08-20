@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, ShieldAlert, ShieldCheck, X, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, RefreshCw, ShieldAlert, ShieldCheck, X, XCircle } from "lucide-react";
 
 type AuditJob = {
   id: string;
@@ -72,6 +72,20 @@ const STATE_NAMES: Record<string, string> = {
   unknown: "확인 실패",
 };
 
+const FINDINGS_PAGE_SIZE = 30;
+
+function friendlyInspectionError(error?: string | null): string | null {
+  if (!error) return null;
+  if (error.includes("AIRBNB_MONTH_HEADING_MISSING")) {
+    return "에어비앤비 월 선택창을 읽지 못했습니다.";
+  }
+  if (error.includes("modal-container") && error.includes("intercepts pointer events")) {
+    return "열려 있는 에어비앤비 월 선택창 때문에 다음 조회를 진행하지 못했습니다.";
+  }
+  if (error.includes("Timeout")) return "사이트 화면 응답이 늦어 조회 시간이 초과됐습니다.";
+  return error.length > 140 ? `${error.slice(0, 140)}…` : error;
+}
+
 function isoLocal(value: Date): string {
   const local = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
@@ -120,6 +134,9 @@ export default function InventoryAuditPage() {
   const [selectedSites, setSelectedSites] = useState<string[]>(
     AUDIT_SITE_OPTIONS.map((site) => site.value)
   );
+  const [activeSite, setActiveSite] = useState<string | null>(null);
+  const [activeSeverity, setActiveSeverity] = useState<"all" | Finding["severity"]>("all");
+  const [visibleFindingCount, setVisibleFindingCount] = useState(FINDINGS_PAGE_SIZE);
   const [starting, setStarting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [message, setMessage] = useState("");
@@ -143,6 +160,7 @@ export default function InventoryAuditPage() {
       setSelectedSites(
         AUDIT_SITE_OPTIONS.map((site) => site.value).filter((site) => included.has(site))
       );
+      setActiveSite((current) => current && included.has(current) ? current : null);
     }
     setFrom(data.job.from);
     setTo(data.job.to);
@@ -212,6 +230,9 @@ export default function InventoryAuditPage() {
     setJob(null);
     setFindings([]);
     setSites([]);
+    setActiveSite(null);
+    setActiveSeverity("all");
+    setVisibleFindingCount(FINDINGS_PAGE_SIZE);
     window.history.replaceState({}, "", "/admin/inventory-audit");
     loadRecent();
   }, [loadRecent]);
@@ -239,6 +260,11 @@ export default function InventoryAuditPage() {
     : job?.status === "cancelled"
       ? "검증 중지됨"
       : `진행 중 ${progress}%`;
+  const activeSiteSummary = sites.find((site) => site.site === activeSite) ?? null;
+  const filteredFindings = findings.filter(
+    (finding) => finding.site === activeSite && (activeSeverity === "all" || finding.severity === activeSeverity)
+  );
+  const visibleFindings = filteredFindings.slice(0, visibleFindingCount);
 
   return (
     <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 md:px-8">
@@ -355,49 +381,127 @@ export default function InventoryAuditPage() {
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
               <SummaryCard label="정상" value={job.normalCount} tone="border-emerald-200 bg-emerald-50 text-emerald-800" icon={<CheckCircle2 size={18} />} />
-              <SummaryCard label="중요 확인" value={job.criticalCount} tone="border-red-200 bg-red-50 text-red-800" icon={<ShieldAlert size={18} />} />
-              <SummaryCard label="마감 확인" value={job.warningCount} tone="border-amber-200 bg-amber-50 text-amber-800" icon={<AlertTriangle size={18} />} />
-              <SummaryCard label="조회 오류" value={job.errorCount} tone="border-slate-200 bg-slate-50 text-slate-700" icon={<XCircle size={18} />} />
+              <SummaryCard label="예약 불일치 · 위험" value={job.criticalCount} tone="border-red-300 bg-red-50 text-red-800" icon={<ShieldAlert size={18} />} />
+              <SummaryCard label="확인 필요 · 낮은 위험" value={job.warningCount} tone="border-amber-300 bg-amber-50 text-amber-800" icon={<AlertTriangle size={18} />} />
+              <SummaryCard label="조회 실패 · 상태 모름" value={job.errorCount} tone="border-slate-300 bg-slate-100 text-slate-700" icon={<XCircle size={18} />} />
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {sites.map((site) => {
                 const failed = site.status === "failed";
                 const cancelled = site.status === "cancelled";
+                const issueCount = site.critical + site.warning + site.error;
+                const selected = activeSite === site.site;
                 const statusLabel = failed ? "수동 확인 필요" : cancelled ? "중지됨" : site.status === "completed" ? "검증 완료" : site.status === "processing" ? "검증 중" : "대기 중";
                 return (
-                  <div key={site.site} className={`rounded-2xl border p-4 ${failed ? "border-red-300 bg-red-50" : cancelled ? "border-slate-300 bg-slate-50" : "border-emerald-200 bg-emerald-50"}`}>
+                  <button
+                    key={site.site}
+                    type="button"
+                    onClick={() => {
+                      setActiveSite(site.site);
+                      setActiveSeverity("all");
+                      setVisibleFindingCount(FINDINGS_PAGE_SIZE);
+                    }}
+                    aria-pressed={selected}
+                    className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
+                      selected
+                        ? "border-slate-900 bg-white ring-2 ring-slate-900/10"
+                        : site.critical > 0
+                          ? "border-red-300 bg-red-50"
+                          : failed
+                            ? "border-slate-300 bg-slate-100"
+                            : site.warning > 0
+                              ? "border-amber-300 bg-amber-50"
+                              : cancelled
+                                ? "border-slate-300 bg-slate-50"
+                                : "border-emerald-200 bg-emerald-50"
+                    }`}
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <b>{SITE_NAMES[site.site] ?? site.site}</b>
-                      <span className={`rounded-full px-2 py-1 text-[11px] font-black ${failed ? "bg-red-600 text-white" : cancelled ? "bg-slate-500 text-white" : "bg-white text-emerald-700"}`}>{statusLabel}</span>
+                      <span className={`rounded-full px-2 py-1 text-[11px] font-black ${failed ? "bg-slate-700 text-white" : cancelled ? "bg-slate-500 text-white" : "bg-white text-emerald-700"}`}>{statusLabel}</span>
                     </div>
-                    <p className="mt-2 text-xs text-slate-600">완료 {site.completed.toLocaleString()} / {site.total.toLocaleString()} · 오류 {site.error.toLocaleString()}</p>
-                    {site.errorReason && <p className="mt-2 break-words rounded-lg bg-white/80 px-2.5 py-2 text-xs font-bold text-red-700">원인: {site.errorReason}</p>}
-                  </div>
+                    <p className="mt-2 text-xs text-slate-600">완료 {site.completed.toLocaleString()} / {site.total.toLocaleString()}</p>
+                    <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-black">
+                      <span className="rounded-full bg-red-100 px-2 py-1 text-red-700">위험 {site.critical.toLocaleString()}</span>
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">확인 {site.warning.toLocaleString()}</span>
+                      <span className="rounded-full bg-slate-200 px-2 py-1 text-slate-700">조회 실패 {site.error.toLocaleString()}</span>
+                    </div>
+                    {site.errorReason && <p className="mt-2 rounded-lg bg-white/80 px-2.5 py-2 text-xs font-bold text-slate-700">원인: {friendlyInspectionError(site.errorReason)}</p>}
+                    <p className="mt-3 flex items-center justify-between border-t border-black/10 pt-2 text-xs font-black text-slate-700">
+                      {issueCount > 0 ? `확인 항목 ${issueCount.toLocaleString()}건 보기` : "확인 항목 없음"}
+                      <ChevronDown size={15} className={selected ? "rotate-180" : ""} />
+                    </p>
+                  </button>
                 );
               })}
             </div>
           </section>
 
           <section className="mt-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-black">확인할 항목 {findings.length.toLocaleString()}건</h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-black">사이트별 확인 결과</h2>
+                <p className="mt-1 text-xs text-slate-500">위 사이트 카드를 누르면 해당 사이트의 위험·확인·조회 실패 항목만 표시됩니다.</p>
+              </div>
               <button type="button" onClick={() => loadJob(job.id)} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500"><RefreshCw size={14} />새로고침</button>
             </div>
-            {findings.length === 0 ? (
+            {!activeSite ? (
+              <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-slate-500">
+                <b className="block text-slate-800">확인할 사이트를 선택해주세요.</b>
+                <span className="mt-1 block">전체 {findings.length.toLocaleString()}건을 한꺼번에 나열하지 않아 필요한 결과를 빠르게 확인할 수 있습니다.</span>
+              </div>
+            ) : findings.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-slate-500">
                 {isRunning ? "불일치가 발견되면 여기에 표시됩니다." : "확인할 불일치가 없습니다."}
               </div>
             ) : (
-              <div className="space-y-3">
-                {findings.map((finding) => (
-                  <article key={finding.id} className={`rounded-2xl border bg-white p-4 shadow-sm ${finding.severity === "critical" ? "border-red-300" : finding.severity === "warning" ? "border-amber-300" : "border-slate-300"}`}>
+              <div>
+                <div className="mb-3 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <b>{SITE_NAMES[activeSite] ?? activeSite}</b>
+                      <span className="ml-2 text-xs font-bold text-slate-500">확인 항목 {(activeSiteSummary ? activeSiteSummary.critical + activeSiteSummary.warning + activeSiteSummary.error : 0).toLocaleString()}건</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {([
+                        ["all", "전체", activeSiteSummary ? activeSiteSummary.critical + activeSiteSummary.warning + activeSiteSummary.error : 0, "bg-slate-800 text-white"],
+                        ["critical", "위험", activeSiteSummary?.critical ?? 0, "bg-red-600 text-white"],
+                        ["warning", "확인", activeSiteSummary?.warning ?? 0, "bg-amber-500 text-white"],
+                        ["error", "조회 실패", activeSiteSummary?.error ?? 0, "bg-slate-500 text-white"],
+                      ] as const).map(([value, label, count, activeTone]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            setActiveSeverity(value);
+                            setVisibleFindingCount(FINDINGS_PAGE_SIZE);
+                          }}
+                          className={`rounded-full px-3 py-1.5 text-[11px] font-black ${activeSeverity === value ? activeTone : "bg-zinc-100 text-slate-600"}`}
+                        >
+                          {label} {count.toLocaleString()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    <b className="text-red-700">위험</b>은 CalApp과 외부 상태가 달라 예약 충돌 가능성이 있는 항목,
+                    <b className="ml-1 text-amber-700">확인</b>은 운영 정책상 살펴볼 낮은 위험 항목,
+                    <b className="ml-1 text-slate-700">조회 실패</b>는 사이트 상태를 읽지 못한 항목입니다.
+                  </p>
+                </div>
+                {filteredFindings.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-slate-500">선택한 종류의 항목이 없습니다.</div>
+                ) : (
+                  <div className="space-y-2.5">
+                {visibleFindings.map((finding) => (
+                  <article key={finding.id} className={`rounded-2xl border p-4 shadow-sm ${finding.severity === "critical" ? "border-red-400 bg-red-50 shadow-red-100" : finding.severity === "warning" ? "border-amber-300 bg-amber-50/80" : "border-slate-300 bg-slate-100"}`}>
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <p className="text-xs font-bold text-slate-500">{finding.date} · {SITE_NAMES[finding.site] ?? finding.site}</p>
                         <h3 className="mt-1 text-base font-black">{finding.product}</h3>
                       </div>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${finding.severity === "critical" ? "bg-red-100 text-red-700" : finding.severity === "warning" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"}`}>
-                        {finding.severity === "critical" ? "중요" : finding.severity === "warning" ? "확인" : "오류"}
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${finding.severity === "critical" ? "bg-red-600 text-white" : finding.severity === "warning" ? "bg-amber-500 text-white" : "bg-slate-600 text-white"}`}>
+                        {finding.severity === "critical" ? "예약 불일치 · 위험" : finding.severity === "warning" ? "확인 필요 · 낮은 위험" : "조회 실패 · 상태 모름"}
                       </span>
                     </div>
                     <p className="mt-3 font-bold text-slate-800">{finding.label}</p>
@@ -409,9 +513,25 @@ export default function InventoryAuditPage() {
                       <p className="mt-2 text-xs text-slate-500">CalApp 예약: {finding.calendarReservations.map((item) => `${item.guestName}(${item.room}/${item.source})`).join(", ")}</p>
                     )}
                     {finding.policyNote && <p className="mt-2 rounded-lg bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800">운영 정책: {finding.policyNote}</p>}
-                    {finding.error && <p className="mt-2 break-all rounded-lg bg-slate-50 px-3 py-2 text-xs text-red-600">{finding.error}</p>}
+                    {finding.error && (
+                      <details className="mt-2 rounded-lg bg-white/80 px-3 py-2 text-xs text-slate-700">
+                        <summary className="cursor-pointer font-bold">원인: {friendlyInspectionError(finding.error)}</summary>
+                        <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all text-[11px] text-red-700">{finding.error}</pre>
+                      </details>
+                    )}
                   </article>
                 ))}
+                    {visibleFindingCount < filteredFindings.length && (
+                      <button
+                        type="button"
+                        onClick={() => setVisibleFindingCount((current) => current + FINDINGS_PAGE_SIZE)}
+                        className="w-full rounded-2xl border border-zinc-300 bg-white py-3 text-sm font-black text-slate-700 hover:bg-zinc-50"
+                      >
+                        다음 {Math.min(FINDINGS_PAGE_SIZE, filteredFindings.length - visibleFindingCount).toLocaleString()}건 더 보기
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </section>
