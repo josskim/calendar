@@ -4,7 +4,10 @@ import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const connectionString = process.env.DATABASE_URL || "postgresql://postgres:hare2580%40%40@localhost:5432/cal_reservation?schema=public";
-const pool = new Pool({ connectionString });
+const pool = new Pool({
+  connectionString,
+  options: "-c search_path=calendar,public",
+});
 const adapter = new PrismaPg(pool);
 
 const globalForPrisma = globalThis as unknown as {

@@ -25,6 +25,7 @@ export const holidayPool =
   global.holidayPool ??
   new Pool({
     connectionString,
+    options: "-c search_path=calendar,public",
   });
 
 if (process.env.NODE_ENV !== "production") {

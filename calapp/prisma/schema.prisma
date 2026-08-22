@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["calendar"]
 }
 
 model reservation {
@@ -33,6 +34,7 @@ model reservation {
   updated_at     DateTime @updatedAt
 
   @@map("reservations")
+  @@schema("calendar")
 }
 
 model inventory_event {
@@ -55,6 +57,7 @@ model inventory_event {
   @@index([status, available_at, id])
   @@index([booking_group_id, id])
   @@map("inventory_events")
+  @@schema("calendar")
 }
 
 model inventory_audit_job {
@@ -79,6 +82,7 @@ model inventory_audit_job {
 
   @@index([status, id])
   @@map("inventory_audit_jobs")
+  @@schema("calendar")
 }
 
 model inventory_audit_check {
@@ -107,6 +111,7 @@ model inventory_audit_check {
   @@index([job_id, status, site, target_date])
   @@index([job_id, severity, target_date])
   @@map("inventory_audit_checks")
+  @@schema("calendar")
 }
 
 model admin {
@@ -116,6 +121,7 @@ model admin {
   createdAt DateTime @default(now())
 
   @@map("admin")
+  @@schema("calendar")
 }
 
 model holiday {
@@ -127,4 +133,5 @@ model holiday {
   updatedAt DateTime @updatedAt
 
   @@map("holidays")
+  @@schema("calendar")
 }
