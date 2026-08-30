@@ -84,3 +84,46 @@ Content-Type: application/json
 접수경로, 입금일, 실제 캘린더 메모와 StaySync `sourceRef`를 반환합니다. StaySync의
 수동 검증 페이지에서만 사용하는 읽기 전용 API이며 이 요청으로 예약 데이터는
 변경되지 않습니다.
+
+## 외부 예약 사이트 상태 검증
+
+StaySync에서 사용자가 직접 날짜와 사이트를 선택해 시작하는 읽기 전용 검증입니다.
+화면 진입, 최근 작업 조회, 진행 상태 조회만으로는 검증이 시작되지 않습니다.
+새 검증은 반드시 `POST` 요청이 성공했을 때만 대기열에 등록됩니다.
+
+지원 사이트와 실행 순서는 `naver`, `yanolja`, `goodchoice`, `airbnb`입니다.
+
+### 최근 검증 조회
+
+`GET /api/mobile/inventory-audits`
+
+### 새 검증 시작
+
+`POST /api/mobile/inventory-audits`
+
+```json
+{
+  "from": "2026-08-30",
+  "to": "2026-09-30",
+  "sites": ["naver", "yanolja", "goodchoice", "airbnb"]
+}
+```
+
+사이트는 한 개 이상 선택해야 하며 날짜 범위는 최대 190일입니다. 이미 실행 중인
+검증이 있으면 HTTP 409와 해당 작업 `id`를 반환합니다. 오류가 없는 동일 기간·동일
+사이트의 완료 보고서가 있으면 실제 검증을 다시 실행하지 않고 `reused: true`로
+기존 보고서를 반환합니다.
+
+### 진행 상태와 결과 조회
+
+`GET /api/mobile/inventory-audits/{id}`
+
+작업 진행률, 정상·위험·확인·조회 실패 합계, 사이트별 진행 상태와 상세 확인 항목을
+반환합니다. 조회는 읽기 전용이며 외부 사이트 작업을 새로 시작하지 않습니다.
+
+### 실행 중지
+
+`DELETE /api/mobile/inventory-audits/{id}`
+
+대기 또는 실행 중인 검증 항목만 `cancelled`로 변경합니다. 예약 차단·해제 동기화
+작업에는 영향을 주지 않습니다.
