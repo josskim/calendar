@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>StaySync 설치</title>
+  <style>
+    :root { color: #173b34; background: #fff8f3; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 20px; box-sizing: border-box; }
+    main { width: min(100%, 440px); background: white; border-radius: 22px; padding: 26px; box-shadow: 0 14px 44px #173b3420; }
+    .logo { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 15px; background: #2e6b5f; color: white; font-size: 26px; font-weight: 900; }
+    h1 { margin: 18px 0 6px; font-size: 28px; }
+    #version { color: #66736f; margin: 0 0 18px; }
+    #notes { padding: 14px; border-radius: 12px; background: #eaf2ef; line-height: 1.5; }
+    a { display: block; margin-top: 18px; padding: 15px; border-radius: 12px; background: #2e6b5f; color: white; text-align: center; text-decoration: none; font-weight: 800; }
+    ol { margin: 20px 0 0; padding-left: 22px; color: #44524f; line-height: 1.65; }
+    small { display: block; margin-top: 18px; color: #7a8582; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo">S</div>
+    <h1>StaySync 설치</h1>
+    <p id="version">최신 버전 확인 중…</p>
+    <div id="notes">StaySync 공식 배포 페이지입니다.</div>
+    <a id="download" href="StaySync-latest.apk" download>최신 버전 다운로드</a>
+    <ol>
+      <li>APK를 다운로드합니다.</li>
+      <li>처음 한 번만 브라우저의 ‘출처를 알 수 없는 앱 설치’를 허용합니다.</li>
+      <li>설치 후 StaySync 설정에서 CalApp 주소와 API 토큰을 입력합니다.</li>
+    </ol>
+    <small>기존 StaySync 위에 설치하면 저장된 설정과 예약 작업 내역이 유지됩니다.</small>
+  </main>
+  <script>
+    fetch('update.json', { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) throw new Error('update feed unavailable');
+        return response.json();
+      })
+      .then((update) => {
+        document.querySelector('#version').textContent = `최신 버전 ${update.versionName}`;
+        document.querySelector('#notes').textContent = update.notes || 'StaySync 최신 버전입니다.';
+        document.querySelector('#download').href = update.apkUrl;
+      })
+      .catch(() => {
+        document.querySelector('#version').textContent = '최신 APK를 다운로드할 수 있습니다.';
+      });
+  </script>
+</body>
+</html>
